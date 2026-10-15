@@ -1,0 +1,118 @@
+'use client';
+import {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react';
+import {useRouter} from 'next/navigation';
+import type {User} from '@supabase/supabase-js';
+import {browserSupabase} from '@/lib/supabase-browser';
+import {canAccessWorkbench,isTcuEmail} from '@/lib/auth-access';
+import type {Attempt,CaseReference,Steps} from '@/lib/types';
+
+export const defaultSteps:Steps={extract:'Extract the facts and evidence relevant to the evaluation criteria. Include equivalent experience where relevant. Do not assume missing information.',check:'Compare the extracted evidence against every evaluation criterion. Consider equivalent evidence and identify information that cannot be verified.',flag:'Recommend advance for records that meet the criteria, reject for clear mismatches, and human_review for ambiguous or incomplete evidence. Explain the decision briefly.'};
+const historyKey='agent-workbench.local-demo.v1';
+const flowKey='agent-lab.flow.v1';
+type Drafts=Record<string,Steps>;
+type Flow={reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:()=>Promise<void>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
+const Context=createContext<Flow|null>(null);
+export function useLab(){const value=useContext(Context);if(!value)throw Error('Agent Lab context is unavailable');return value;}
+
+export function FlowProvider({children,local,demo}:{children:React.ReactNode;local:boolean;demo:boolean}){
+ const router=useRouter();
+ const [supabase]=useState(()=>local?null:browserSupabase());
+ const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local);
+ const [ready,setReady]=useState(false),[reference,setReference]=useState<CaseReference|null>(null);
+ const [drafts,setDrafts]=useState<Drafts>({}),[history,setHistory]=useState<Attempt[]>([]),[activeId,setActiveId]=useState<string|null>(null);
+ const [error,setError]=useState(''),[running,setRunning]=useState(false);
+ const runLock=useRef(false),initialized=useRef(false);
+ const access=local||canAccessWorkbench(user,demo);
+ const identity=local?'local':user?.id;
+ const storageKey=flowKey+'.'+identity;
+
+ useEffect(()=>{
+  if(!supabase)return;
+  let mounted=true;
+  void supabase.auth.getUser().then(({data:{user}})=>{if(mounted){setUser(user);setAuthReady(true);}}).catch(()=>{if(mounted)setAuthReady(true);});
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{if(mounted){setUser(session?.user||null);setAuthReady(true);}});
+  return()=>{mounted=false;subscription.unsubscribe();};
+ },[supabase]);
+
+ useEffect(()=>{
+  if(!authReady||!access)return;
+  const controller=new AbortController();initialized.current=false;setReady(false);setReference(null);setHistory([]);setActiveId(null);setDrafts({});setError('');
+  async function restore(){
+   let stored:{caseId?:string;drafts?:Drafts;activeId?:string}={};
+   try{
+    stored=JSON.parse((local?localStorage:sessionStorage).getItem(storageKey)||'{}');
+    if(!stored||typeof stored!=='object')stored={};
+    const validDrafts:Drafts={};
+    for(const [id,value] of Object.entries(stored.drafts||{})){if(value&&['extract','check','flag'].every(key=>typeof value[key as keyof Steps]==='string'&&value[key as keyof Steps].length<=1500))validDrafts[id]=value;}
+    if(!controller.signal.aborted){setDrafts(validDrafts);setActiveId(stored.activeId||null);}
+    if(local){
+     const saved:unknown=JSON.parse(localStorage.getItem(historyKey)||'[]');
+     if(Array.isArray(saved)&&!controller.signal.aborted)setHistory(saved.filter((item:Attempt)=>item?.storage==='local'&&['demo','openai'].includes(item.mode)&&Array.isArray(item.results)&&Number.isInteger(item.attempt_number)).map(item=>({...item,case_id:item.case_id||'resume-screener'})));
+    }
+   }catch{if(!controller.signal.aborted)setError('Saved browser data could not be restored. You can start a new case.');}
+   if(stored.caseId){
+    try{
+     const response=await fetch('/api/cases/'+encodeURIComponent(stored.caseId),{cache:'no-store',signal:controller.signal});
+     const value=await response.json();
+     if(!response.ok)throw Error(value.error||'Could not restore this case.');
+     if(!controller.signal.aborted)setReference(value);
+    }catch(error){if(!controller.signal.aborted)setError(error instanceof Error?error.message:'Could not restore this case.');}
+   }
+   if(!controller.signal.aborted){initialized.current=true;setReady(true);}
+  }
+  void restore();return()=>controller.abort();
+ },[authReady,access,identity,local,storageKey]);
+
+ useEffect(()=>{
+  if(!ready||!initialized.current)return;
+  try{(local?localStorage:sessionStorage).setItem(storageKey,JSON.stringify({caseId:reference?.case_id,drafts,activeId}));}catch{setError('Browser storage is unavailable. Instructions may not survive a refresh.');}
+ },[reference,drafts,activeId,ready,local,storageKey]);
+
+ useEffect(()=>{
+  if(local||!reference)return;
+  const controller=new AbortController();
+  void fetch('/api/history?case_id='+encodeURIComponent(reference.case_id),{cache:'no-store',signal:controller.signal}).then(async response=>{
+   if(!response.ok)throw Error('Could not load your saved attempts.');
+   const data:Attempt[]=await response.json();
+   if(!controller.signal.aborted)setHistory(data.map(item=>({...item,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items})));
+  }).catch(error=>{if(!controller.signal.aborted)setError(error.message);});
+  return()=>controller.abort();
+ },[local,reference]);
+
+ const chooseCase=useCallback((value:CaseReference)=>{setReference(value);setActiveId(null);setError('');},[]);
+ const steps=reference?drafts[reference.case_id]||defaultSteps:defaultSteps;
+ function editSteps(value:Steps){if(reference)setDrafts(previous=>({...previous,[reference.case_id]:value}));}
+ const relevant=history.filter(item=>item.case_id===(reference?.case_id||history.find(row=>row.id===activeId)?.case_id));
+ const active=relevant.find(item=>item.id===activeId)||relevant[0]||null;
+ function selectAttempt(attempt:Attempt){setActiveId(attempt.id);router.push('/results');}
+ function reviewAttempt(attempt?:Attempt){const selected=attempt||relevant[0];if(selected){setActiveId(selected.id);router.push('/stakeholders');}}
+
+ async function run(){
+  if(runLock.current||!reference)return;
+  if(Object.values(steps).some(value=>value.trim().length<10||value.length>1500)){setError('Each stage needs between 10 and 1,500 characters.');return;}
+  runLock.current=true;setRunning(true);setError('');
+  try{
+   const response=await fetch(local?'/api/local-demo':'/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:reference.case_id,steps})});
+   const body=await response.json();if(!response.ok)throw Error(body.error||'The agent could not complete this run.');
+   const next:Attempt={...body,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items};
+   if(local){
+    next.storage='local';next.attempt_number=body.attempt_number>0?body.attempt_number:Math.max(0,...history.filter(item=>item.case_id===reference.case_id).map(item=>item.attempt_number))+1;
+   }
+   const nextHistory=[next,...history];setHistory(nextHistory);setActiveId(next.id);
+   if(local){try{localStorage.setItem(historyKey,JSON.stringify(nextHistory));}catch{setError('Run completed, but browser storage is full or unavailable. This attempt will be lost on refresh.');}}
+   router.push('/results');
+  }catch(error){setError(error instanceof Error?error.message:'Run failed. Please retry.');}finally{runLock.current=false;setRunning(false);}
+ }
+ async function signOut(){if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
+
+ if(!authReady)return <div className="boot-screen">Opening Agent Lab…</div>;
+ if(!access)return <AccessPanel demo={demo} supabase={supabase!}/>;
+ return <Context.Provider value={{reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
+}
+
+function AccessPanel({demo,supabase}:{demo:boolean;supabase:ReturnType<typeof browserSupabase>}){
+ const [email,setEmail]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ async function enter(event:React.FormEvent){event.preventDefault();if(busy)return;setError('');const label=email.trim().toLowerCase();if(!isTcuEmail(label)){setError('Use a valid @tcu.edu email address.');return;}setBusy(true);
+  try{const {error}=demo?await supabase.auth.signInAnonymously({options:{data:{demo_email_label:label}}}):await supabase.auth.signInWithOtp({email:label,options:{emailRedirectTo:window.location.origin+'/auth/callback'}});if(error)throw error;if(!demo)setError('Check your TCU email for the verification link.');}catch(error){setError(error instanceof Error?error.message:'Could not sign in.');}finally{setBusy(false);}}
+ return <main className="auth-screen"><form className="card auth-card" onSubmit={enter}><span className="eyebrow">AGENT LAB</span><h1>Your learning workspace.</h1><p>{demo?'Enter a TCU email as an unverified display label to begin.':'Verify your TCU email to access private cases and AI execution.'}</p><label htmlFor="student-email">TCU email{demo?' · unverified display label':''}</label><input id="student-email" className="input" type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="student@tcu.edu" required/><button className="button primary" disabled={busy}>{busy?'Connecting…':demo?'Enter Workbench':'Send verification link'}</button>{error&&<p role="status">{error}</p>}</form></main>;
+}

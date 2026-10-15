@@ -1,0 +1,23 @@
+{
+  "id":"resume-screener",
+  "title":"Screening analyst applications",
+  "story":"Your company is hiring five entry-level analysts. HR wants an AI assistant to review resumes consistently while preserving human judgment on ambiguous qualifications.",
+  "task":"Write a three-stage agent that extracts qualifications, checks them against the role, and makes a responsible recommendation for each candidate.",
+  "requirements":"Bachelor's degree or equivalent relevant experience; demonstrated Excel and SQL skills; strong communication. Refer ambiguous qualifications to human review rather than guessing.",
+  "decisions":["advance","reject","human_review"],
+  "items":[
+    {"id":"r01","label":"Priya S.","text":"Priya S. BA Economics, 2025. Internship: analytics assistant, used SQL for reporting and Excel pivot tables. Presented weekly findings to cross-functional teams."},
+    {"id":"r02","label":"Jordan M.","text":"Jordan M. No four-year degree. Completed a rigorous two-year data apprenticeship and worked 3 years as reporting analyst. Advanced SQL, Excel Power Query, and client presentations. Experience may be equivalent to a degree."},
+    {"id":"r03","label":"Alex T.","text":"Alex T. BA History, 2026. Retail cashier. Comfortable with email and word processing, no SQL or Excel analysis projects stated."},
+    {"id":"r04","label":"Sam R.","text":"Sam R. BS Business, 2025. Built advanced Excel models. Lists 'database tools' without naming SQL. Good communication experience; SQL proficiency cannot be determined from resume."},
+    {"id":"r05","label":"Morgan L.","text":"Morgan L. BS Statistics, 2026. SQL queries, Excel dashboards, campus consulting projects, and client presentations. Career break for caregiving in 2024."}
+  ],
+  "answer_key":[
+    {"item_id":"r01","decision":"advance","planted":false,"note":"Clearly meets criteria"},
+    {"item_id":"r02","decision":"advance","planted":true,"note":"Equivalent professional experience should be recognized"},
+    {"item_id":"r03","decision":"reject","planted":false,"note":"No evidence of critical SQL or Excel analysis"},
+    {"item_id":"r04","decision":"human_review","planted":true,"note":"Ambiguity about SQL should not result in an automatic rejection"},
+    {"item_id":"r05","decision":"advance","planted":false,"note":"Career break irrelevant to stated qualifications"}
+  ],
+  "characters":[],"rubric":{},"skill_tags":["Workflow automation","AI output evaluation","Human-in-the-loop design"]
+}

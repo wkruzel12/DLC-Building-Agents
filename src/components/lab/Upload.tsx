@@ -1,0 +1,33 @@
+'use client';
+import Link from 'next/link';
+import {useRef,useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {useLab} from './FlowProvider';
+import {Icon,PageHeading} from './ui';
+import type {CaseReference} from '@/lib/types';
+
+export function Upload(){
+ const lab=useLab(),router=useRouter(),input=useRef<HTMLInputElement>(null);
+ const [file,setFile]=useState<{name:string;size:number}|null>(null),[status,setStatus]=useState<'idle'|'validating'|'valid'|'error'>('idle'),[message,setMessage]=useState(''),[dragging,setDragging]=useState(false);
+ const valid=status==='valid'||(status==='idle'&&Boolean(lab.reference));
+ async function upload(selected:File){
+  setFile({name:selected.name,size:selected.size});setMessage('');setStatus('validating');
+  const pdf=selected.name.toLowerCase().endsWith('.pdf');
+  if(!pdf&&!selected.name.toLowerCase().endsWith('.json')){setStatus('error');setMessage('Choose a .pdf or .json case file. Other file formats are not supported.');return;}
+  if(selected.size>1024*1024){setStatus('error');setMessage('This file is too large. The maximum size is 1 MB.');return;}
+  try{
+   const response=await fetch('/api/cases',{method:'POST',headers:{'Content-Type':pdf?'application/pdf':'application/json'},body:selected});
+   const body=await response.json();if(!response.ok)throw Error([body.error,...(body.issues||[])].join(' '));
+   lab.chooseCase(body as CaseReference);setStatus('valid');setMessage('Case validated. You’re ready to begin.');
+  }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Upload failed. Please retry.');}
+ }
+ async function sample(){setMessage('');setStatus('validating');setFile(null);try{const response=await fetch('/api/cases/resume-screener',{cache:'no-store'});const body=await response.json();if(!response.ok)throw Error(body.error);lab.chooseCase(body);setStatus('valid');setMessage('Sample case ready. Five fictional records to explore.');router.push('/scenario');}catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Could not load the sample case.');}}
+ return <><PageHeading step="01 / CASE UPLOAD" title="Your next challenge starts here." description="Turn a business case into a thoughtful AI workflow. Bring your case, or explore a ready-to-use simulation."/><div className="upload-grid"><section className="card upload-card"><div className="card-heading"><span className="icon-block"><Icon name="upload"/></span><div><h2>Upload your case</h2><p>A structured challenge. A clear starting point.</p></div><span className="badge badge-neutral">PDF / JSON</span></div>
+ <input ref={input} id="case-file" type="file" accept=".json,.pdf,application/json,application/pdf" className="visually-hidden" disabled={status==='validating'} onChange={event=>{const selected=event.target.files?.[0];if(selected)void upload(selected);event.target.value='';}}/>
+ <div className={'dropzone '+(dragging?'dropzone-active':'')} onDragOver={event=>{event.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);if(status==='validating')return;const files=event.dataTransfer.files;if(files.length!==1){setStatus('error');setMessage('Choose one PDF or JSON case file at a time.');return;}void upload(files[0]);}}><span className="upload-symbol"><Icon name="upload" size={30}/></span><h3>Drop your case file here</h3><p>or choose a file from your device</p><button className="button secondary" onClick={()=>input.current?.click()} disabled={status==='validating'}>Browse Files <Icon name="file" size={16}/></button><small>PDF or JSON files · Up to 1 MB · 1–20 records</small></div>
+ {(file||lab.reference)&&<div className={'file-status '+(status==='error'?'file-invalid':'')}><span className="file-symbol"><Icon name="file" size={22}/></span><div><strong>{file?.name||lab.reference?.scenario.title}</strong><small>{file?`${(file.size/1024).toFixed(1)} KB`:'Sample or previously selected case'} · {status==='validating'?'Reading and validating on server…':valid?'Valid case':'Validation failed'}</small></div>{valid&&<span className="success-icon"><Icon name="check" size={18}/></span>}</div>}
+ {message&&<p className={status==='error'?'upload-message error-text':'upload-message success-text'} role={status==='error'?'alert':'status'}>{message}</p>}
+ <div className="upload-footer"><span><Icon name="shield" size={15}/> Grading answers stay on the server</span><button className="button primary" disabled={!valid} onClick={()=>router.push('/scenario')}>Continue <Icon name="arrow" size={17}/></button></div></section>
+ <aside className="upload-aside"><section className="card journey-card"><div className="eyebrow">FROM CASE TO CONFIDENCE</div><h2>Learn by building.</h2><ol>{[['Understand the challenge','Read the context and define what good looks like.'],['Design your AI agent','Write instructions for three connected stages.'],['Test, reflect, improve','Compare decisions and learn from every attempt.']].map(([title,description],index)=><li key={title}><span>{index+1}</span><div><strong>{title}</strong><p>{description}</p></div></li>)}</ol></section><section className="sample-card"><span className="icon-block"><Icon name="spark"/></span><span className="eyebrow">JUST EXPLORING?</span><h2>Try a sample case.</h2><p>Help a team evaluate five fictional analyst applications. Discover where your agent needs a human perspective.</p><div className="sample-meta"><span>5 records</span><span>3 AI stages</span></div><button className="button secondary" onClick={()=>void sample()} disabled={status==='validating'}>Try Sample Case <Icon name="arrow" size={17}/></button></section></aside></div>
+ <section className="format-note"><Icon name="file" size={19}/><div><strong>What belongs in a case file?</strong><p>PDFs are converted using OpenAI and need readable case content, evaluation criteria, records, and an explicit grading key. PDF import uses API credits, including in demo mode. JSON files need id, title, story, task, requirements, items, answer_key, and decisions. Characters, rubric, and skill_tags are optional. Supported decisions: advance, reject, human_review.</p><p>{lab.local?'Local uploads expire after four hours and belong to this browser. Keep the original JSON file to upload again.':'Uploaded cases are stored privately and restricted to your authenticated account.'}</p></div></section>{lab.reference&&<Link className="text-link" href="/scenario">Return to your current case <Icon name="arrow" size={15}/></Link>}</>;
+}
