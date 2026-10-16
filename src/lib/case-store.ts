@@ -1,10 +1,13 @@
 import 'server-only';
 import {mkdir,readdir,readFile,writeFile,unlink} from 'node:fs/promises';
+import {atomicReplace} from './atomic-file';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Scenario} from './types';
 import {caseSchema} from './case-schema';
+import type {StakeholderConfig} from './stakeholder-config';
+import {RunError} from './openai-errors';
 
 export const CASE_TTL_MS=4*60*60*1000;
 const directory=join(tmpdir(),'agent-lab-cases-'+createHash('sha256').update(process.cwd()).digest('hex').slice(0,12));
@@ -42,4 +45,22 @@ export async function readCase(id:string,owner:string):Promise<Scenario|null>{
   if(value.owner!==owner)return null;
   return caseSchema.parse(value.scenario);
  }catch{return null;}
+}
+
+export async function updateCaseStakeholders(id:string,owner:string,config:StakeholderConfig,proposalId?:string){
+ developmentOnly();
+ if(!validId(id)||!owner)throw new RunError('Case unavailable or access denied.',404);
+ const operation=queue.catch(()=>{}).then(async()=>{
+  const path=join(directory,id+'.json');let value:StoredCase;
+  try{value=JSON.parse(await readFile(path,'utf8'));}catch{throw new RunError('Case unavailable or expired.',404);}
+  if(value.owner!==owner||value.expiresAt<=Date.now())throw new RunError('Case unavailable or expired.',404);
+  const current=value.scenario.stakeholders;
+  if(proposalId?current?.status!=='proposed'||current.proposal_id!==proposalId:current!==undefined)throw new RunError('Stakeholder setup changed. Reload the case before continuing.',409);
+  const scenario=caseSchema.parse({...value.scenario,stakeholders:config});
+  const temporary=path+'.'+randomUUID()+'.tmp';
+  await writeFile(temporary,JSON.stringify({...value,scenario}),{mode:0o600,flag:'wx'});
+  try{await atomicReplace(temporary,path);}catch(error){await unlink(temporary).catch(()=>{});throw error;}
+  return scenario;
+ });
+ queue=operation;return operation;
 }

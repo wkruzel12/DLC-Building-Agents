@@ -8,7 +8,7 @@ import {RunError} from './openai-errors';
 
 export type ReviewAccess={local:boolean;owner:string};
 export function reviewAdmin(){return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});}
-export function initialReview(owner:string,caseId:string,attemptId:string):ReviewRecord{return {id:randomUUID(),user_id:owner,case_id:caseId,attempt_id:attemptId,state:{conversations:{sarah:{id:randomUUID(),stakeholder_id:'sarah',messages:[],request_ids:[]},zack:{id:randomUUID(),stakeholder_id:'zack',messages:[],request_ids:[]}},reflection:null},version:0,lease_token:null,lease_until:new Date(0).toISOString()};}
+export function initialReview(owner:string,caseId:string,attemptId:string,personaIds:string[]=['sarah','zack']):ReviewRecord{return {id:randomUUID(),user_id:owner,case_id:caseId,attempt_id:attemptId,state:{conversations:Object.fromEntries(personaIds.map(id=>[id,{id:randomUUID(),stakeholder_id:id,messages:[],request_ids:[]}])),reflection:null},version:0,lease_token:null,lease_until:new Date(0).toISOString()};}
 const storageError=()=>new RunError('Stakeholder storage is unavailable. Apply supabase/stakeholders.sql and check the server configuration.',503);
 
 export async function trustedAttempt(access:ReviewAccess,caseId:string,attemptId?:string):Promise<Attempt|null>{
@@ -18,9 +18,9 @@ export async function trustedAttempt(access:ReviewAccess,caseId:string,attemptId
  const {data,error}=await query.order('attempt_number',{ascending:false}).limit(1).maybeSingle();
  if(error)throw storageError();return data as Attempt|null;
 }
-export async function getReview(access:ReviewAccess,caseId:string,attemptId:string):Promise<ReviewRecord>{
- if(access.local)return localWorkspace(access.owner,workspace=>{let review=workspace.reviews.find(item=>item.attempt_id===attemptId&&item.case_id===caseId);if(!review){review=initialReview(access.owner,caseId,attemptId);workspace.reviews.push(review);}return review;});
- const fresh=initialReview(access.owner,caseId,attemptId);
+export async function getReview(access:ReviewAccess,caseId:string,attemptId:string,personaIds:string[]=['sarah','zack']):Promise<ReviewRecord>{
+ if(access.local)return localWorkspace(access.owner,workspace=>{let review=workspace.reviews.find(item=>item.attempt_id===attemptId&&item.case_id===caseId);if(!review){review=initialReview(access.owner,caseId,attemptId,personaIds);workspace.reviews.push(review);}return review;});
+ const fresh=initialReview(access.owner,caseId,attemptId,personaIds);
  const {error:insertError}=await reviewAdmin().from('stakeholder_reviews').upsert(fresh,{onConflict:'user_id,attempt_id',ignoreDuplicates:true});
  if(insertError)throw storageError();
  const {data,error}=await reviewAdmin().from('stakeholder_reviews').select('*').eq('user_id',access.owner).eq('case_id',caseId).eq('attempt_id',attemptId).single();

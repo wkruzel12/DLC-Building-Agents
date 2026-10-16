@@ -3,20 +3,21 @@ import {randomUUID} from 'node:crypto';
 import type {z} from 'zod';
 import type {Attempt,Scenario} from './types';
 import type {chatInput,ReviewRecord,ReviewResponse} from './stakeholder-types';
-import {performanceSummary,publicPersonas} from './stakeholder-context';
+import {performanceSummary,publicPersonas,personaFor} from './stakeholder-context';
 import {stakeholderReply,stakeholderReflection} from './stakeholder-model';
 import {claimReview,commitReview,releaseReview,reserveMessage,type ReviewAccess} from './stakeholder-store';
 import {RunError} from './openai-errors';
 
 export function publicReview(review:ReviewRecord,scenario:Scenario,attempt:Attempt,local:boolean):ReviewResponse{
- const {sarah,zack}=review.state.conversations;
- const publicThread=({id,stakeholder_id,messages}:typeof sarah)=>({id,stakeholder_id,messages});
- return {review_id:review.id,attempt:performanceSummary(scenario,attempt),personas:publicPersonas(scenario),conversations:{sarah:publicThread(sarah),zack:publicThread(zack)},reflection:review.state.reflection,version:review.version,local};
+ const personas=publicPersonas(scenario);
+ const conversations=Object.fromEntries(personas.map(persona=>{const thread=review.state.conversations[persona.id];if(!thread)throw new RunError('Stakeholder configuration changed for this attempt. Reload or run a new attempt.',409);return [persona.id,{id:thread.id,stakeholder_id:thread.stakeholder_id,messages:thread.messages}];}));
+ return {review_id:review.id,attempt:performanceSummary(scenario,attempt),personas,conversations,reflection:review.state.reflection,version:review.version,local};
 }
 export async function performReviewAction(access:ReviewAccess,scenario:Scenario,attempt:Attempt,review:ReviewRecord,input:z.infer<typeof chatInput>){
  if(review.user_id!==access.owner||review.case_id!==input.scenario_id||review.attempt_id!==attempt.id||input.attempt_id!==attempt.id)throw new RunError('Review unavailable or access denied.',404);
+ personaFor(scenario,input.stakeholder_id);
  const thread=review.state.conversations[input.stakeholder_id];
- if(thread.id!==input.conversation_id)throw new RunError('This conversation belongs to a different or restarted review. Reload the conversation.',409);
+ if(!thread||thread.id!==input.conversation_id)throw new RunError('This conversation belongs to a different or restarted review. Reload the conversation.',409);
  if(thread.request_ids.includes(input.request_id)||(input.action==='start'&&thread.messages.length)||(input.action==='reflect'&&review.state.reflection))return review;
  if(input.action==='send'&&!input.message)throw new RunError('Write a message before sending.',400);
  if(input.action==='restart'&&input.confirmed!==true)throw new RunError('Confirm before restarting this conversation.',400);

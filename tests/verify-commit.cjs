@@ -9,6 +9,7 @@ if(!files.length)throw Error('No staged files to audit.');
 const knownSecrets=fs.existsSync('.env.local')?[...fs.readFileSync('.env.local','utf8').matchAll(/^(?:OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY)=(.+)$/gm)].map(match=>match[1].trim()).filter(value=>value&&!value.startsWith('YOUR_')):[];
 const patterns=[/\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/,/\bsb_secret_[A-Za-z0-9_-]{12,}\b/,/\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/];
 for(const file of files){
+ if(/(^|\/)(\.private-cases|test-cases)(\/|$)/.test(file)||/\.pdf$/i.test(file))throw Error('Private case material is tracked: '+file);
  if(/(^|\/)(node_modules|\.next|\.npm-cache|\.test-artifacts|\.git)(\/|$)/.test(file)||(/(^|\/)\.env(?:\.|$)/.test(file)&&file!=='.env.example'))throw Error('Excluded local file is tracked: '+file);
  const source=git(['show',':'+file]);
  if(knownSecrets.some(value=>source.includes(value))||patterns.some(pattern=>pattern.test(source)))throw Error('Potential credential found in staged file: '+file);

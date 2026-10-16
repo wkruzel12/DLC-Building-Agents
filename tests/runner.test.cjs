@@ -33,8 +33,8 @@ test('five resumes use sequential stages, bounded concurrency, token caps, and s
   if(body.instructions.includes('stage 1')){assert.ok(body.input.startsWith('RECORD:'));return response('EXTRACTED_EVIDENCE');}
   if(body.instructions.includes('stage 2')){assert.ok(body.input.includes('EXTRACTION:\nEXTRACTED_EVIDENCE'));return response('CHECKED_EVIDENCE');}
   assert.equal(body.input,'CHECK OUTPUT:\nCHECKED_EVIDENCE');
-  assert.deepEqual(body.text.format.schema.properties.decision.enum,['advance','reject','human_review']);
-  return response(JSON.stringify({decision:'advance',reason:'Meets the test requirements.'}));
+  assert.deepEqual(body.text.format.schema.properties.decision.anyOf.map(branch=>branch.properties.type.enum[0]),['advance','reject','human_review']);
+  return response(JSON.stringify({decision:{type:'advance',target_record_id:null},reason:'Meets the test requirements.'}));
  });
  const results=await runAll(scenario,steps);
  assert.equal(calls,15);assert.equal(maximum,2);assert.equal(results.length,5);
@@ -45,7 +45,7 @@ test('five resumes use sequential stages, bounded concurrency, token caps, and s
 test('invalid decisions and incomplete outputs become scored errors',async t=>{
  configure(t,async(_url,options)=>{
   const body=JSON.parse(options.body);
-  return response(body.instructions.includes('stage 3')?'{"decision":"invented","reason":"Invalid"}':'Stage evidence');
+  return response(body.instructions.includes('stage 3')?'{"decision":{"type":"invented","target_record_id":null},"reason":"Invalid"}':'Stage evidence');
  });
  const results=await runAll(scenario,steps);
  assert.ok(results.every(item=>item.decision==='error'&&item.error.includes('invalid decision')));

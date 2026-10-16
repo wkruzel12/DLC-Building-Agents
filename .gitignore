@@ -1,4 +1,8 @@
 node_modules
+.private-cases/
+/test-cases/
+widix-resume-screener*.pdf
+*.pdf
 .next
 .env*
 !.env.example

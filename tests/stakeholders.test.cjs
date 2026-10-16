@@ -25,7 +25,8 @@ test('personas are configurable metadata and summaries contain only actual autho
  assert.ok(!JSON.stringify(summary).includes('PRIVATE_GRADING_NOTE'));assert.equal(summary.answer_key,undefined);
  assert.deepEqual(publicPersonas(scenario).map(item=>item.name),['Sarah Mitchell','Zack Johnson']);
  const instructions=stakeholderInstructions(scenario,attempt,'zack');assert.ok(instructions.includes('not proof of legal compliance'));assert.ok(instructions.includes('jurisdiction'));
- assert.throws(()=>publicPersonas({...scenario,id:'unconfigured-case'}),/not configured/);
+ assert.deepEqual(publicPersonas({...scenario,id:'uploaded-hiring-case'}).map(item=>item.id),['sarah','zack']);
+ assert.throws(()=>publicPersonas({...scenario,id:'unconfigured-case',title:'Inventory allocation',story:'A warehouse allocates stock.',task:'Decide which inventory requests to approve.'}),/stakeholder setup/);
 });
 
 test('request validation rejects forged scores/personas, long messages, and unconfirmed restarts',()=>{

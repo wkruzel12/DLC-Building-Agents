@@ -6,7 +6,7 @@ import {browserSupabase} from '@/lib/supabase-browser';
 import {canAccessWorkbench,isTcuEmail} from '@/lib/auth-access';
 import type {Attempt,CaseReference,Steps} from '@/lib/types';
 
-export const defaultSteps:Steps={extract:'Extract the facts and evidence relevant to the evaluation criteria. Include equivalent experience where relevant. Do not assume missing information.',check:'Compare the extracted evidence against every evaluation criterion. Consider equivalent evidence and identify information that cannot be verified.',flag:'Recommend advance for records that meet the criteria, reject for clear mismatches, and human_review for ambiguous or incomplete evidence. Explain the decision briefly.'};
+export const defaultSteps:Steps={extract:'Extract the facts and evidence relevant to the evaluation criteria. Include equivalent experience where relevant. Do not assume missing information.',check:'Compare the extracted evidence against every evaluation criterion. Consider equivalent evidence and identify information that cannot be verified. Compare records when a decision requires a target.',flag:'Choose one of this case’s allowed decision types according to its criteria. When the action requires a target, identify the existing target record ID from the evidence. Explain the decision briefly; do not invent missing information.'};
 const historyKey='agent-workbench.local-demo.v1';
 const flowKey='agent-lab.flow.v1';
 type Drafts=Record<string,Steps>;

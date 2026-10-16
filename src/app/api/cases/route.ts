@@ -8,6 +8,8 @@ import {authorized} from '@/lib/supabase';
 import {savePrivateCase} from '@/lib/private-cases';
 import {caseFromPdf} from '@/lib/pdf-case';
 import {RunError,openaiFailure} from '@/lib/openai-errors';
+import {PdfImportError} from '@/lib/pdf-case-validation';
+import {hiringStakeholders} from '@/lib/stakeholder-defaults';
 
 export const maxDuration=90;
 let pdfImportRunning=false;
@@ -28,11 +30,12 @@ export async function POST(request:NextRequest){
  if(pdf){
   if(pdfImportRunning)return Response.json({error:'Another PDF is being imported. Wait a moment and retry.'},{status:429});
   pdfImportRunning=true;
-  try{input=await caseFromPdf(Buffer.concat(chunks));}catch(error){const failure=error instanceof RunError?error:openaiFailure(error);return Response.json({error:failure.message},{status:failure.status});}finally{pdfImportRunning=false;}
+  try{input=await caseFromPdf(Buffer.concat(chunks));}catch(error){const failure=error instanceof RunError?error:openaiFailure(error);return Response.json({error:failure.message,...(failure instanceof PdfImportError?{phase:failure.phase,code:failure.code,issues:failure.issues}:{})},{status:failure.status,headers:{'Cache-Control':'no-store'}});}finally{pdfImportRunning=false;}
  }else{try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return Response.json({error:'This file is not valid JSON.'},{status:400});}}
  const parsed=caseSchema.safeParse(input);
  if(!parsed.success)return Response.json({error:'The case does not match the required format.',issues:parsed.error.issues.slice(0,6).map(issue=>`${issue.path.join('.')}: ${issue.message}`)},{status:400});
  try{
+  parsed.data.stakeholders=parsed.data.stakeholders||hiringStakeholders(parsed.data)||undefined;
   const owner=request.cookies.get(CASE_COOKIE)?.value||randomUUID();
   const stored=local?await saveCase(owner,parsed.data):{id:await savePrivateCase(user!.id,parsed.data),expiresAt:undefined};
   const response=NextResponse.json({case_id:stored.id,scenario:publicScenario(parsed.data),expires_at:stored.expiresAt?new Date(stored.expiresAt).toISOString():undefined},{headers:{'Cache-Control':'no-store'}});

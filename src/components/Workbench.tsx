@@ -4,9 +4,10 @@ import {browserSupabase} from '@/lib/supabase-browser';
 import type {User} from '@supabase/supabase-js';
 import {canAccessWorkbench,displayLabel,isTcuEmail} from '@/lib/auth-access';
 import type {Attempt,PublicScenario,Steps,ApplicantResult} from '@/lib/types';
+import {formatDecision} from '@/lib/decisions';
 const defaults:Steps={extract:'Extract education, Excel and SQL experience, relevant professional experience, and communication evidence from the resume. Do not assume missing facts.',check:'Compare all extracted evidence to the stated job requirements. Consider equivalent relevant professional experience and identify skills that cannot be verified.',flag:'Advance applicants who qualify, reject those who clearly do not, and route ambiguous or incomplete evidence to human_review. Explain briefly.'};
 const stages=[{id:'extract',name:'1. Extract',hint:'What information should the AI identify?'},{id:'check',name:'2. Check',hint:'How should the AI compare the evidence to the job requirements?'},{id:'flag',name:'3. Flag',hint:'How should it decide, including when a person should review?'}] as const;
-const short=(d:string)=>d==='human_review'?'Human review':d==='advance'?'Advance':d==='reject'?'Reject':'Error';
+const short=formatDecision;
 const localHistoryKey='agent-workbench.local-demo.v1';
 export default function Workbench({demoMode,localDemo=false}:{demoMode:boolean;localDemo?:boolean}){
  const [supabase]=useState(()=>localDemo?null:browserSupabase());const [email,setEmail]=useState('');const [user,setUser]=useState<User|null>(null);const [loading,setLoading]=useState(!localDemo);const [sending,setSending]=useState(false);const [running,setRunning]=useState(false);const [notice,setNotice]=useState('');const [scenario,setScenario]=useState<PublicScenario|null>(null);const [steps,setSteps]=useState<Steps>(defaults);const [history,setHistory]=useState<Attempt[]>([]);const [active,setActive]=useState<Attempt|null>(null);const [selected,setSelected]=useState<ApplicantResult|null>(null);

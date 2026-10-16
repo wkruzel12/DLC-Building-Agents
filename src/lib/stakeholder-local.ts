@@ -1,5 +1,6 @@
 import 'server-only';
-import {mkdir,readFile,writeFile,rename,readdir,unlink} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,readdir,unlink} from 'node:fs/promises';
+import {atomicReplace} from './atomic-file';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash,randomUUID} from 'node:crypto';
@@ -28,7 +29,7 @@ export async function localWorkspace<T>(owner:string,change:(value:Workspace)=>T
   if(liveFiles>=100&&!files.includes(key+'.json'))throw new RunError('Local review storage is full. Expired workspaces are cleaned after four hours.',503);
   const temporary=filename+'.'+randomUUID()+'.tmp';
   await writeFile(temporary,JSON.stringify(workspace),{mode:0o600});
-  try{await rename(temporary,filename);}catch(error){await unlink(temporary).catch(()=>{});throw error;}
+  try{await atomicReplace(temporary,filename);}catch(error){await unlink(temporary).catch(()=>{});throw error;}
   return value;
  });
  queues.set(key,operation);
