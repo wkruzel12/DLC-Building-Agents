@@ -71,7 +71,7 @@ test('saved structured targets survive serialization and remain readable in stak
  const summary=performanceSummary(value,attempt);
  assert.equal(summary.decision_counts.merge,1);
  assert.equal(summary.decisions[2].decision,'Merge into A-02');
- assert.equal(summary.decisions[2].correct_decision,'Merge into A-02');
+ assert.equal(summary.decisions[2].decision,'Merge into A-02');assert.equal(summary.decisions[2].correct_decision,undefined);
  assert.ok(!JSON.stringify(summary).includes('PRIVATE_TARGET_EXPLANATION'));
 });
 

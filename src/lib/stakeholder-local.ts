@@ -5,11 +5,12 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Attempt} from './types';
+import type {AttemptLearning} from './results-learning';
 import type {ReviewRecord} from './stakeholder-types';
 import {RunError} from './openai-errors';
 
 export const REVIEW_TTL=4*60*60*1000;
-type Workspace={expiresAt:number;attempts:Attempt[];reviews:ReviewRecord[];reservations:number[]};
+type Workspace={learning?:Record<string,AttemptLearning>;expiresAt:number;attempts:Attempt[];reviews:ReviewRecord[];reservations:number[]};
 const directory=join(tmpdir(),'agent-lab-reviews-'+createHash('sha256').update(process.cwd()).digest('hex').slice(0,12));
 const queues=new Map<string,Promise<unknown>>();
 const hash=(owner:string)=>createHash('sha256').update(owner).digest('hex');
@@ -22,7 +23,7 @@ export async function localWorkspace<T>(owner:string,change:(value:Workspace)=>T
   let workspace:Workspace={expiresAt:Date.now()+REVIEW_TTL,attempts:[],reviews:[],reservations:[]};
   try{const saved:Workspace=JSON.parse(await readFile(filename,'utf8'));if(saved.expiresAt>Date.now())workspace=saved;}catch{/* A new or expired browser workspace starts empty. */}
   const value=change(workspace);
-  if(workspace.attempts.length>20){workspace.attempts=workspace.attempts.slice(-20);const ids=new Set(workspace.attempts.map(item=>item.id));workspace.reviews=workspace.reviews.filter(item=>ids.has(item.attempt_id));}
+  if(workspace.attempts.length>20){workspace.attempts=workspace.attempts.slice(-20);const ids=new Set(workspace.attempts.map(item=>item.id));workspace.reviews=workspace.reviews.filter(item=>ids.has(item.attempt_id));if(workspace.learning)workspace.learning=Object.fromEntries(Object.entries(workspace.learning).filter(([id])=>ids.has(id)));}
   const files=await readdir(directory);
   let liveFiles=0;
   for(const file of files){if(!file.endsWith('.json'))continue;try{const saved=JSON.parse(await readFile(join(directory,file),'utf8'));if(saved.expiresAt<=Date.now())await unlink(join(directory,file));else liveFiles++;}catch{/* Ignore a concurrently replaced temporary file. */}}

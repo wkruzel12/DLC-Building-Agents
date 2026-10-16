@@ -1,30 +1,34 @@
 'use client';
+import {DEFAULT_LEARNING_TARGET,studentAttempt,validReflection,reviewAllowed,type AttemptLearning} from '@/lib/results-learning';
 import {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import type {User} from '@supabase/supabase-js';
 import {browserSupabase} from '@/lib/supabase-browser';
 import {canAccessWorkbench,isTcuEmail} from '@/lib/auth-access';
 import type {Attempt,CaseReference,Steps} from '@/lib/types';
+import {freshProgress,restoreProgress,type BuilderProgress} from '@/lib/builder-progress';
 
 export const defaultSteps:Steps={extract:'Extract the facts and evidence relevant to the evaluation criteria. Include equivalent experience where relevant. Do not assume missing information.',check:'Compare the extracted evidence against every evaluation criterion. Consider equivalent evidence and identify information that cannot be verified. Compare records when a decision requires a target.',flag:'Choose one of this case’s allowed decision types according to its criteria. When the action requires a target, identify the existing target record ID from the evidence. Explain the decision briefly; do not invent missing information.'};
 const historyKey='agent-workbench.local-demo.v1';
 const flowKey='agent-lab.flow.v1';
 type Drafts=Record<string,Steps>;
-type Flow={reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:()=>Promise<void>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
+type Flow={canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:()=>Promise<void>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
 const Context=createContext<Flow|null>(null);
 export function useLab(){const value=useContext(Context);if(!value)throw Error('Agent Lab context is unavailable');return value;}
 
-export function FlowProvider({children,local,demo}:{children:React.ReactNode;local:boolean;demo:boolean}){
+export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET}:{children:React.ReactNode;local:boolean;demo:boolean;target?:number}){
  const router=useRouter();
  const [supabase]=useState(()=>local?null:browserSupabase());
  const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local);
  const [ready,setReady]=useState(false),[reference,setReference]=useState<CaseReference|null>(null);
+ const [builders,setBuilders]=useState<Record<string,BuilderProgress>>({});
  const [drafts,setDrafts]=useState<Drafts>({}),[history,setHistory]=useState<Attempt[]>([]),[activeId,setActiveId]=useState<string|null>(null);
  const [error,setError]=useState(''),[running,setRunning]=useState(false);
  const runLock=useRef(false),initialized=useRef(false);
  const access=local||canAccessWorkbench(user,demo);
  const identity=local?'local':user?.id;
  const storageKey=flowKey+'.'+identity;
+ const currentIdentity=useRef(identity);currentIdentity.current=identity;
 
  useEffect(()=>{
   if(!supabase)return;
@@ -36,18 +40,18 @@ export function FlowProvider({children,local,demo}:{children:React.ReactNode;loc
 
  useEffect(()=>{
   if(!authReady||!access)return;
-  const controller=new AbortController();initialized.current=false;setReady(false);setReference(null);setHistory([]);setActiveId(null);setDrafts({});setError('');
+  const controller=new AbortController();initialized.current=false;setReady(false);setReference(null);setHistory([]);setActiveId(null);setDrafts({});setBuilders({});setError('');
   async function restore(){
-   let stored:{caseId?:string;drafts?:Drafts;activeId?:string}={};
+   let stored:{caseId?:string;drafts?:Drafts;builders?:Record<string,BuilderProgress>;activeId?:string}={};
    try{
     stored=JSON.parse((local?localStorage:sessionStorage).getItem(storageKey)||'{}');
     if(!stored||typeof stored!=='object')stored={};
     const validDrafts:Drafts={};
     for(const [id,value] of Object.entries(stored.drafts||{})){if(value&&['extract','check','flag'].every(key=>typeof value[key as keyof Steps]==='string'&&value[key as keyof Steps].length<=1500))validDrafts[id]=value;}
-    if(!controller.signal.aborted){setDrafts(validDrafts);setActiveId(stored.activeId||null);}
+    if(!controller.signal.aborted){setDrafts(validDrafts);setBuilders(stored.builders&&typeof stored.builders==='object'?stored.builders:{});setActiveId(stored.activeId||null);}
     if(local){
      const saved:unknown=JSON.parse(localStorage.getItem(historyKey)||'[]');
-     if(Array.isArray(saved)&&!controller.signal.aborted)setHistory(saved.filter((item:Attempt)=>item?.storage==='local'&&['demo','openai'].includes(item.mode)&&Array.isArray(item.results)&&Number.isInteger(item.attempt_number)).map(item=>({...item,case_id:item.case_id||'resume-screener'})));
+     if(Array.isArray(saved)&&!controller.signal.aborted){const cleaned=saved.filter((item:Attempt)=>item?.storage==='local'&&['demo','openai'].includes(item.mode)&&Array.isArray(item.results)&&Number.isInteger(item.attempt_number)).map(item=>studentAttempt({...item,case_id:item.case_id||'resume-screener'}));setHistory(cleaned);localStorage.setItem(historyKey,JSON.stringify(cleaned));}
     }
    }catch{if(!controller.signal.aborted)setError('Saved browser data could not be restored. You can start a new case.');}
    if(stored.caseId){
@@ -65,8 +69,8 @@ export function FlowProvider({children,local,demo}:{children:React.ReactNode;loc
 
  useEffect(()=>{
   if(!ready||!initialized.current)return;
-  try{(local?localStorage:sessionStorage).setItem(storageKey,JSON.stringify({caseId:reference?.case_id,drafts,activeId}));}catch{setError('Browser storage is unavailable. Instructions may not survive a refresh.');}
- },[reference,drafts,activeId,ready,local,storageKey]);
+  try{(local?localStorage:sessionStorage).setItem(storageKey,JSON.stringify({caseId:reference?.case_id,drafts,builders,activeId}));}catch{setError('Browser storage is unavailable. Instructions may not survive a refresh.');}
+ },[reference,drafts,builders,activeId,ready,local,storageKey]);
 
  useEffect(()=>{
   if(local||!reference)return;
@@ -82,13 +86,21 @@ export function FlowProvider({children,local,demo}:{children:React.ReactNode;loc
  const chooseCase=useCallback((value:CaseReference)=>{setReference(value);setActiveId(null);setError('');},[]);
  const steps=reference?drafts[reference.case_id]||defaultSteps:defaultSteps;
  function editSteps(value:Steps){if(reference)setDrafts(previous=>({...previous,[reference.case_id]:value}));}
+ const builder=reference?restoreProgress(builders[reference.case_id],reference.scenario.items.map(item=>item.id)):freshProgress();
+ function editBuilder(value:BuilderProgress){if(reference&&currentIdentity.current===identity)setBuilders(previous=>({...previous,[reference.case_id]:value}));}
  const relevant=history.filter(item=>item.case_id===(reference?.case_id||history.find(row=>row.id===activeId)?.case_id));
  const active=relevant.find(item=>item.id===activeId)||relevant[0]||null;
+ const latest=[...relevant].sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.attempt_number-a.attempt_number)[0];
+ const needsReflection=Boolean(latest&&latest.accuracy<target&&!validReflection(latest.learning?.reflection||''));
+ function updateAttemptLearning(id:string,value:AttemptLearning){if(currentIdentity.current!==identity)return;setHistory(previous=>{const next=previous.map(attempt=>attempt.id===id?{...attempt,learning:value}:attempt);if(local){try{localStorage.setItem(historyKey,JSON.stringify(next));}catch{setError('The reflection was saved on the server, but browser storage could not be updated.');}}return next;});}
+ const completedTotal=Math.max(relevant.length,...relevant.map(a=>a.completed_count||0));
+ const canReview=reviewAllowed(active,target,completedTotal);
  function selectAttempt(attempt:Attempt){setActiveId(attempt.id);router.push('/results');}
- function reviewAttempt(attempt?:Attempt){const selected=attempt||relevant[0];if(selected){setActiveId(selected.id);router.push('/stakeholders');}}
+ function reviewAttempt(attempt?:Attempt){const selected=attempt||active;if(selected){setActiveId(selected.id);if(!reviewAllowed(selected,target,completedTotal)){setError('Review your results first. After three completed simulations, you can acknowledge a below-target score and continue to stakeholders.');router.push('/results');return;}router.push('/stakeholders');}}
 
  async function run(){
   if(runLock.current||!reference)return;
+  if(needsReflection){setActiveId(latest.id);setError('Save a brief reflection in the Improve tab before starting another complete simulation.');router.push('/results');return;}
   if(Object.values(steps).some(value=>value.trim().length<10||value.length>1500)){setError('Each stage needs between 10 and 1,500 characters.');return;}
   runLock.current=true;setRunning(true);setError('');
   try{
@@ -107,7 +119,7 @@ export function FlowProvider({children,local,demo}:{children:React.ReactNode;loc
 
  if(!authReady)return <div className="boot-screen">Opening Agent Lab…</div>;
  if(!access)return <AccessPanel demo={demo} supabase={supabase!}/>;
- return <Context.Provider value={{reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
+ return <Context.Provider value={{canReview,target,needsReflection,updateAttemptLearning,builder,editBuilder,reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
 }
 
 function AccessPanel({demo,supabase}:{demo:boolean;supabase:ReturnType<typeof browserSupabase>}){

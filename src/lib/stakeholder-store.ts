@@ -15,7 +15,7 @@ export async function trustedAttempt(access:ReviewAccess,caseId:string,attemptId
  if(access.local)return readLocalAttempt(access.owner,caseId,attemptId);
  let query=reviewAdmin().from('attempts').select('id,attempt_number,created_at,steps,results,planted_caught,planted_total,accuracy,errors,mode').eq('user_id',access.owner).eq('scenario_id',caseId);
  if(attemptId)query=query.eq('id',attemptId);
- const {data,error}=await query.order('attempt_number',{ascending:false}).limit(1).maybeSingle();
+ const {data,error}=await query.order('created_at',{ascending:false}).order('attempt_number',{ascending:false}).limit(1).maybeSingle();
  if(error)throw storageError();return data as Attempt|null;
 }
 export async function getReview(access:ReviewAccess,caseId:string,attemptId:string,personaIds:string[]=['sarah','zack']):Promise<ReviewRecord>{
