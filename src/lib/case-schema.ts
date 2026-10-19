@@ -20,6 +20,10 @@ export const caseSchema=z.object({
  if(new Set(value.decisions).size!==value.decisions.length)ctx.addIssue({code:'custom',path:['decisions'],message:'Decisions must be unique.'});
  const keys=new Set(value.answer_key.map(item=>item.item_id));
  if(keys.size!==value.answer_key.length||keys.size!==ids.size||[...keys].some(id=>!ids.has(id)))ctx.addIssue({code:'custom',path:['answer_key'],message:'Provide exactly one grading entry for every record ID.'});
+ value.answer_key.forEach((entry,index)=>{
+  if(!ids.has(entry.item_id))ctx.addIssue({code:'custom',path:['answer_key',index,'item_id'],message:'The grading record ID must exist in this case.'});
+  if(value.answer_key.some((other,otherIndex)=>otherIndex!==index&&other.item_id===entry.item_id))ctx.addIssue({code:'custom',path:['answer_key',index,'item_id'],message:'Multiple grading entries reference this record; supply exactly one authoritative decision.'});
+ });
  for(const [type,rule] of Object.entries(value.decision_rules)){
   if(!value.decisions.includes(type))ctx.addIssue({code:'custom',path:['decision_rules',type],message:'Decision rules must refer to a declared action.'});
   if(type==='merge'&&!rule.requires_target)ctx.addIssue({code:'custom',path:['decision_rules',type],message:'Merge always requires a target record ID.'});

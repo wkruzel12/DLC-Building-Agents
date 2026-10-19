@@ -23,6 +23,13 @@ export function normalizePdfDecisions(value:unknown):unknown {
   }
   if(label&&typeof label==='object'&&!Array.isArray(label)){
    const decision=label as Record<string,unknown>;
+   const merge=typeof decision.type==='string'?decision.type.trim().match(/^merge\s+into\s+(.+)$/i):null;
+   if(merge){
+    const target=merge[1].trim();
+    // Never discard an inline target or choose between conflicting targets.
+    if(decision.target_record_id!=null&&decision.target_record_id!==target)return decision;
+    return {...decision,type:'merge',target_record_id:target};
+   }
    return {...decision,type:action(decision.type)};
   }
   return label;
@@ -30,6 +37,10 @@ export function normalizePdfDecisions(value:unknown):unknown {
  let rules=source.decision_rules;
  if(Array.isArray(rules)&&rules.every(rule=>rule&&typeof rule==='object'&&typeof rule.type==='string'&&typeof rule.requires_target==='boolean')&&new Set(rules.map(rule=>action(rule.type))).size===rules.length){
   rules=Object.fromEntries(rules.map(rule=>[action(rule.type),{requires_target:rule.requires_target}]));
+ }else if(rules&&typeof rules==='object'&&!Array.isArray(rules)){
+  const entries=Object.entries(rules);
+  // A collision may conceal conflicting rules; leave it invalid for correction.
+  if(new Set(entries.map(([type])=>action(type))).size===entries.length)rules=Object.fromEntries(entries.map(([type,rule])=>[action(type),rule]));
  }
  return {...source,
   ...(Array.isArray(source.stakeholders)&&source.stakeholders.length===0?{stakeholders:undefined}:{}),
@@ -57,15 +68,18 @@ export function validatePdfCase(value:unknown){
  throw new PdfImportError(
   gradingOnly?'PDF content was extracted, but the private grading key is missing, incomplete, or inconsistent. An instructor must supply or correct the key using the private case-setup tool before uploading the completed JSON. No answers were invented.':'PDF content was extracted, but case validation failed. Check the fields listed below; headings may use different names.',
   'validation',gradingOnly?'grading_setup_required':'case_schema_invalid',
-  result.error.issues.slice(0,10).map(issue=>{
+  result.error.issues.map(issue=>{
    const field=fields[String(issue.path[0])]||'case structure';
    const position=typeof issue.path[1]==='number'?` (entry ${issue.path[1]+1})`:'';
-   const detail=issue.code==='custom'?'Check declared action types, grading coverage, and existing non-self target IDs.':
+   const detail=issue.code==='custom'?issue.message:
     issue.code==='too_small'?'Required content is empty or below the minimum.':
     issue.code==='too_big'?'Content exceeds the permitted size or count.':
     issue.code==='invalid_enum_value'?'Unsupported decision label.':
-    issue.code==='invalid_string'?'Invalid identifier format.':'Required content is missing or has the wrong type.';
-   return `${field}${position}: ${detail}`;
+    issue.code==='invalid_string'?'Action IDs must start with a lowercase letter and contain only lowercase letters, numbers, or underscores; case IDs use letters, numbers, hyphens, or underscores.':
+    issue.code==='invalid_union'?'Provide exactly one decision: an action ID or {type, target_record_id}. The type must be a lowercase action ID (up to 64 characters); a target must be a nonempty record ID or null. Arrays and combined alternatives are not valid decisions.':
+    issue.code==='unrecognized_keys'?'Unexpected fields; a decision accepts only type and target_record_id.':'Required content is missing or has the wrong type.';
+   const nested=issue.path.slice(typeof issue.path[1]==='number'?2:1).filter(part=>['decision','type','target_record_id','requires_target','item_id'].includes(String(part)));
+   return `${field}${position}${nested.length?` (${nested.join('.')})`:''}: ${detail}`;
   })
  );
 }

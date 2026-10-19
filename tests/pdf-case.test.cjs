@@ -7,8 +7,47 @@ const {caseFromPdf,extractPdfCase,PDF_EXTRACTION_INSTRUCTIONS}=require('../src/l
 const {publicScenario}=require('../src/lib/scenario.ts');
 const sample=JSON.parse(fs.readFileSync('scenarios/resume-screener.json','utf8'));
 const bytes=Buffer.from('%PDF-1.7\nTest fixture');
+const {normalizePdfDecisions,validatePdfCase}=require('../src/lib/pdf-case-validation.ts');
 function configure(t,fetch){const oldFetch=global.fetch,oldEnv={...process.env};t.after(()=>{global.fetch=oldFetch;process.env=oldEnv;});global.fetch=fetch;process.env.OPENAI_API_KEY='test-key';process.env.OPENAI_MODEL='gpt-5.4-nano';}
 function converted(value){return new Response(JSON.stringify({id:'pdf-test',status:'completed',output_text:JSON.stringify(value),output:[]}),{headers:{'Content-Type':'application/json'}});}
+
+test('normalizes rule labels and inline targets without resolving conflicts or adding grades',()=>{
+ const value={...sample,decisions:['Advance','Merge'],decision_rules:{Merge:{requires_target:true}},answer_key:[{...sample.answer_key[0],decision:{type:'Merge into '+sample.items[1].id,target_record_id:null}}]};
+ const normalized=normalizePdfDecisions(value);
+ assert.deepEqual(normalized.decisions,['advance','merge']);
+ assert.deepEqual(normalized.decision_rules,{merge:{requires_target:true}});
+ assert.deepEqual(normalized.answer_key[0].decision,{type:'merge',target_record_id:sample.items[1].id});
+ assert.equal(normalized.answer_key.length,1);
+ const conflicting={...value,answer_key:[{...value.answer_key[0],decision:{type:'Merge into '+sample.items[1].id,target_record_id:sample.items[2].id}}]};
+ assert.deepEqual(normalizePdfDecisions(conflicting).answer_key[0].decision,conflicting.answer_key[0].decision);
+ assert.throws(()=>validatePdfCase(normalizePdfDecisions(conflicting)),error=>error.phase==='validation');
+ const collision={...value,decision_rules:{Merge:{requires_target:true},merge:{requires_target:false}}};
+ assert.deepEqual(normalizePdfDecisions(collision).decision_rules,collision.decision_rules);
+});
+
+test('PDF diagnostics explain each invalid grading decision without disclosing private notes',()=>{
+ const invalid={...sample,decisions:['advance','merge'],decision_rules:{merge:{requires_target:false}},answer_key:sample.answer_key.map((entry,index)=>({...entry,note:'SECRET_NOTE',decision:[{type:'merge',target_record_id:entry.item_id},{type:'merge',target_record_id:'UNKNOWN_PRIVATE_ID'},{type:'merge',target_record_id:null},{type:'advance',target_record_id:sample.items[0].id},{type:'undeclared',target_record_id:null}][index]}))};
+ assert.throws(()=>validatePdfCase(invalid),error=>{
+  for(const message of ['Merge always requires','cannot target itself','must exist','requires an explicit target','does not accept a target','must be declared'])assert.ok(error.issues.some(issue=>issue.includes(message)),message);
+  for(let i=1;i<=5;i++)assert.ok(error.issues.some(issue=>issue.includes(`entry ${i}`)));
+  assert.ok(!JSON.stringify(error.issues).includes('SECRET_NOTE'));
+  assert.ok(!JSON.stringify(error.issues).includes('UNKNOWN_PRIVATE_ID'));
+  return true;
+ });
+});
+
+test('extraction output contract constrains action syntax consistently',async t=>{
+ configure(t,async(url,options)=>{
+  const schema=JSON.parse(options.body).text.format.schema;
+  const action=schema.properties.decisions.items;
+  assert.equal(action.pattern,'^[a-z][a-z0-9_]*$');assert.equal(action.maxLength,64);
+  assert.equal(schema.properties.decisions.minItems,1);
+  assert.deepEqual(schema.properties.decision_rules.items.properties.type,action);
+  assert.deepEqual(schema.properties.answer_key.items.properties.decision.properties.type,action);
+  return converted(sample);
+ });
+ await caseFromPdf(bytes);
+});
 
 test('PDF conversion stays server-side and produces a validated, redacted case',async t=>{
  let calls=0;
