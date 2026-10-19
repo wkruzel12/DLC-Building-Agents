@@ -53,9 +53,9 @@ async function main(){
  await click('Try Sample Case');await wait("document.querySelector('.selected-case')?.textContent.includes('Screening analyst applications')");assert.equal(await evaluate('location.pathname'),'/');await click('Continue');await wait("location.pathname==='/scenario'&&document.body?.textContent.includes('Screening analyst applications')");await screenshot('scenario-desktop');
 
  await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.body?.textContent.includes('Build Your AI Agent')");
- await click('Start Building');await wait("document.querySelector('#stage-extract')");
+ await wait("document.querySelector('#stage-extract')");
  assert.equal(await evaluate("document.querySelectorAll('.focused-editor textarea').length"),1);
- assert.equal(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Continue to Check').disabled"),true);
+ assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
  const draftExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.drafts[f.caseId]||f.builders[f.caseId]?.tests.extract[0]?.steps||null;})()";
  const progressExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.builders[f.caseId];})()";
  async function goStage(name){await evaluate("(()=>{const b=[...document.querySelectorAll('.builder-progress button')].find(b=>b.querySelector('strong')?.textContent==="+JSON.stringify(name)+");if(!b||b.disabled)throw Error('Stage navigation unavailable');b.click();return true;})()");}

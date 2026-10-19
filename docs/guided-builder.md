@@ -1,6 +1,8 @@
 # Guided AI Agent Builder
 
-The builder teaches Extract, Check, and Flag one stage at a time. Its introduction explains the workflow, each stage has a focused editor and contextual learning guide, and final review uses the existing complete simulation and scoring system. Examples use public case requirements, not grading answers. The learning assistant is a collapsible educational guide; it does not generate instructions or grade practice outputs.
+The builder opens directly to Extract (including saved legacy introduction views). A compact horizontal indicator tracks Extract, Check, Flag, and Final Review. Each practice stage shows one editor, a record selector, and a test action. A short challenge summary keeps the full public case library behind “Case details & materials.” Optional “Need help?” sections hold examples, thinking prompts, and common mistakes without using a sidebar. Guidance uses public methods, not grading answers, and does not generate student instructions.
+
+Output is hidden until a test has run. Successful tests show the AI response, stage-specific review questions, and a prominent continuation action; the test button becomes secondary. Success means the stage executed, not that its answer was graded correct. Earlier successful tests remain in expandable history when inputs change. Final Review uses expandable instruction summaries with edit controls and the existing complete simulation and scoring system. Student-facing practice errors describe retry or instructor-help actions without server configuration details.
 
 ## Practice tests
 
@@ -23,3 +25,5 @@ Changing instructions, choosing a different record, retesting an upstream stage,
 ## Verification
 
 Run `npm test`, `npx tsc --noEmit`, and `npm run build`. `node tests/local-journey.cjs` is an optional Edge integration check requiring the local dev server. It makes five real stage-test requests and two complete runs, uses an isolated browser profile, and verifies progression, stale dependencies, refresh persistence, stage traces, history, responsive layouts, and failure handling. Complete runs incur OpenAI costs when demo mode is off. Screenshots are written to ignored `.test-artifacts/`.
+
+`node tests/builder-journey.cjs` checks the redesigned interface in headless Edge with mocked AI responses and no API credits. It covers all four stages, optional help and case materials, failed and successful tests, progression gates, a single primary action, instruction and record persistence, stale-result history, full-run request preservation, and layouts at desktop, tablet, 390px, and 320px widths. Set `LAB_TEST_URL` if the local dev server uses a port other than 3001. Backend grading, signed receipts, target rules, and AI execution remain covered by the existing unit tests; mocked browser results do not verify live model quality.
