@@ -1,6 +1,6 @@
 # Output presentation
 
-Scenario Briefing renders the entire public `scenario.story` directly in What's Happening. Whitespace and intentional line breaks are retained; the page scrolls naturally. Case Materials and the optional source reader remain available.
+Scenario Briefing renders the complete public Context, Objective, and Evaluation Criteria in What's Happening. A display projection separates labeled sections from combined imports, keeping applicant records in the existing Case Materials viewer. Whitespace and intentional line breaks are retained; the page scrolls naturally. Original public source fields remain available in the materials library. See `scenario-briefing.md` for the current presentation and checks.
 
 `AiOutput` and `OutputSection` provide the shared reading surface for practice tests, upstream stage inputs, history, Final Review's saved practice outputs, result investigations, record traces, coaching, stakeholder assistant messages and reflection, and the legacy Workbench trace. Original records, student instructions, student messages, and transcript evidence are kept verbatim.
 

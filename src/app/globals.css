@@ -566,6 +566,16 @@ body{font-size:15px;line-height:1.65}
 
 /* Source case text is verbatim and scrolls with the page. */
 .full-case-context{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.9;color:var(--muted);max-height:none;overflow:visible;margin:0 0 12px}
+.scenario-overview>h3{font-size:21px;color:var(--ink);margin:8px 0 22px}
+.briefing-content-section{padding:0;margin:0 0 24px;min-width:0}
+.briefing-content-section:last-child{margin-bottom:8px}
+.briefing-content-section>h4{font-size:16px;font-weight:650;line-height:1.5;color:#4d1979;margin:0 0 9px}
+.briefing-source-text,.briefing-criteria{font-size:15px;line-height:1.9;color:var(--muted);overflow-wrap:anywhere}
+.briefing-source-text,.briefing-criteria>li{white-space:pre-wrap}
+.briefing-criteria{list-style:decimal;margin:0;padding-left:25px}
+.briefing-criteria>li{padding-left:6px;margin:0 0 12px}
+.briefing-criteria>li:last-child{margin-bottom:0}
+.briefing-criteria>li::marker{color:#4d1979;font-weight:650}
 .source-evidence{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85}
 /* A shared reading surface for model text and deterministic feedback. */
 .output-section{min-width:0;padding:18px 0;margin:0;border-top:1px solid var(--line)}
