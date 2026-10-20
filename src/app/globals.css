@@ -94,3 +94,38 @@ body{font-size:15px;line-height:1.65}
 @media(max-width:700px){.briefing-tabs{gap:8px}.briefing-tabs>button{flex-direction:column;align-items:center;text-align:center;gap:10px;padding:14px 8px;min-height:124px}.briefing-tabs strong{font-size:11px}.briefing-tabs small{display:none}.briefing-tabs>button>span{width:27px;height:27px;font-size:12px}.briefing-case-heading h2{font-size:19px}.briefing-case-heading p{font-size:12px}.scenario-explainer,.mission-assignment,.mission-reference,.mission-next{padding:23px}.scenario-explainer h3{font-size:21px}.scenario-role ol{grid-template-columns:1fr;gap:19px}.why-ai,.mission-example{padding:22px}.material-search,.case-materials-drawer .material-search{grid-template-columns:1fr;gap:13px}.material-search input,.material-search select{font-size:16px}.material-card{padding:22px;gap:12px}.material-card h3{font-size:18px}.material-card>.button{margin-left:0;width:100%}.material-reader{padding:22px}.material-reader>header{flex-direction:column;gap:17px}.material-reader h3{font-size:22px}.material-reader>header .button{min-height:42px}.material-full-text{padding:18px;font-size:15px;max-height:57dvh}.materials-thinking{padding:22px;flex-direction:column;gap:14px}.mission-workflow>li{padding:24px}.builder-reference-actions{width:100%;align-items:stretch}.builder-reference-actions .button{width:100%}.builder-reference-actions .text-link{align-self:flex-start}.reference-drawer-heading{padding:21px 18px;gap:12px}.reference-drawer-heading h2{font-size:23px}.reference-drawer-heading p{font-size:12px;max-width:220px}.reference-drawer-body{padding:22px 18px;height:calc(100% - 154px)}.case-materials-drawer .material-reader{padding:19px}.briefing-activity>.page-actions .button{white-space:normal;width:100%;flex:auto}.briefing-progress-note{font-size:11px}}
 
 .case-materials-drawer[open]{display:flex;flex-direction:column}.reference-drawer-heading{flex-shrink:0}.reference-drawer-body{height:auto;flex:1;min-height:0}
+
+/* Use the available screen width, with gutters that scale down on laptops. */
+.workspace{max-width:none;padding:28px clamp(20px,2.4vw,48px) 20px}
+.app-grid{grid-template-columns:clamp(220px,17vw,262px) minmax(0,1fr)}
+.workspace>.card,.workspace>section,.briefing-activity,.material-library{min-width:0}
+
+/* Keep the document text and action on separate rows instead of competing
+   for the same flex line and squeezing headings into a few characters. */
+.material-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.material-card{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px 16px;padding:24px;align-content:start}
+.material-card>.icon-block{grid-column:1;grid-row:1;flex-shrink:0}
+.material-card>div{grid-column:2;min-width:0}
+.material-card h3{overflow-wrap:break-word;word-break:normal;margin-top:8px}
+.material-card p{max-width:65ch}
+.material-card .eyebrow{overflow-wrap:break-word;word-break:normal;line-height:1.6}
+.material-card>.button{grid-column:2;justify-self:start;margin:4px 0 0;max-width:100%;white-space:normal}
+.case-materials-drawer .material-grid{grid-template-columns:1fr}
+
+@media(min-width:701px) and (max-width:1200px){
+ .workspace{padding:24px 24px 18px}
+ .sidebar{padding-inline:10px}
+ .material-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .material-card{padding:20px;gap:12px}
+ .briefing-tabs>button,.results-tabs>button{min-width:0}
+}
+@media(max-width:900px){
+ .material-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+ .app-grid{display:block}
+ .workspace{padding:22px 16px 16px}
+ .material-card{padding:20px;grid-template-columns:36px minmax(0,1fr)}
+ .material-card>.button{grid-column:1 / -1;justify-self:stretch;width:100%}
+}
+
