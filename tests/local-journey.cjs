@@ -92,7 +92,7 @@ async function main(){
  await evaluate("(()=>{const c=document.querySelector('.investigation-toolbar input');if(!c.checked)c.click();return true;})()");await wait("document.querySelectorAll('.investigation-card').length===5");
  await evaluate("document.querySelector('.investigation-card>.button').click()");await wait("!document.querySelector('.record-investigation').hidden");await click('Give Me a Hint');
  await evaluate("document.querySelector('.record-investigation .text-button').click()");await wait("document.querySelector('dialog')?.open");
- assert.equal(await evaluate("document.querySelectorAll('.trace-stage pre').length"),3);
+ assert.equal(await evaluate("document.querySelectorAll('.trace-stage>.output-section').length"),3);
  assert.equal(await evaluate("document.querySelector('.original-record p').textContent.includes('Priya')"),true);
  assert.equal(await evaluate("document.querySelector('dialog').textContent.includes('Equivalent professional experience should be recognized')"),false);
  await screenshot('inspect-desktop');await click('Close inspection');await screenshot('results-investigate');

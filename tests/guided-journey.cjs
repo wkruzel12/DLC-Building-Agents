@@ -30,7 +30,7 @@ async function main(){
  await send('Page.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});await send('Runtime.enable');await navigate('/');console.log('Browser connected on port',port);
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
 
- const mock=`(()=>{
+ const mock=String.raw`(()=>{
  const original=window.fetch;window.__requests=[];
  let state=JSON.parse(sessionStorage.getItem('lesson-test-server')||'{"runs":0,"reviews":{}}');
  const save=()=>sessionStorage.setItem('lesson-test-server',JSON.stringify(state));
@@ -41,7 +41,7 @@ async function main(){
   if(typeof url==='string'&&url==='/api/stage-test'){
    const input=JSON.parse(options.body);window.__requests.push(input);
    const previous=['extract','check','flag'].slice(0,['extract','check','flag'].indexOf(input.stage));
-   const value={id:crypto.randomUUID(),stage:input.stage,record_id:input.record_id,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+3600000).toISOString(),output:input.stage==='extract'?'Documented evidence from the practice record.':input.stage==='check'?'Evidence compared with each stated requirement.':'Recommendation based on evaluated evidence.',steps:Object.fromEntries(Object.entries(input.steps).map(([key,value])=>[key,value.trim()])),upstream_ids:previous.map(name=>JSON.parse(input.upstream[name]).id),...(input.stage==='flag'?{decision:'advance',reason:'Mock practice reasoning.'}:{})};
+   const value={id:crypto.randomUUID(),stage:input.stage,record_id:input.record_id,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+3600000).toISOString(),output:input.stage==='extract'?JSON.stringify({candidate_experience:'3 years (part time)',supporting_evidence:'Source says \"three years\"; record A-02.',missing:null}):input.stage==='check'?'**Evidence**\n\n- Requirement compared (A-02).\n- Missing information remains uncertain.':JSON.stringify({decision:'advance',reason:'Mock practice reasoning.'}),steps:Object.fromEntries(Object.entries(input.steps).map(([key,value])=>[key,value.trim()])),upstream_ids:previous.map(name=>JSON.parse(input.upstream[name]).id),...(input.stage==='flag'?{decision:'advance',reason:'Mock practice reasoning.'}:{})};
    return json({...value,receipt:JSON.stringify(value)});
   }
   if(url==='/api/local-demo'){
@@ -66,7 +66,7 @@ async function main(){
    save();return json(review);
   }
   const response=await original(url,options);
-  if(typeof url==='string'&&url.startsWith('/api/cases/')&&response.ok)sessionStorage.setItem('lesson-test-case',JSON.stringify(await response.clone().json()));
+  if(typeof url==='string'&&url.startsWith('/api/cases/')&&response.ok){const fixture=await response.clone().json();fixture.scenario.story+='\n\n'+('Original context: \"quoted evidence\" (A-02). '.repeat(30))+'\n\nLast original paragraph: preserve this conclusion.';sessionStorage.setItem('lesson-test-case',JSON.stringify(fixture));return json(fixture);}
   return response;
  };
  })()`;
@@ -86,7 +86,7 @@ async function main(){
  assert.equal(await evaluate("document.querySelectorAll('.journey-step svg').length"),5);
  assert.equal(await evaluate("document.querySelectorAll('.briefing-tabs [role=tab]').length"),3);
  assert.equal(await evaluate("document.querySelector('h1').textContent"),'Scenario Briefing');
- await screenshotTop('lesson-challenge-desktop');await size(390,844);await screenshotTop('lesson-challenge-mobile');await size(1440,1000);
+ assert.equal(await evaluate("document.querySelector('.full-case-context').textContent===JSON.parse(sessionStorage.getItem('lesson-test-case')).scenario.story"),true);assert.equal(await evaluate("getComputedStyle(document.querySelector('.full-case-context')).maxHeight"),'none');assert.equal(await evaluate("document.querySelector('.full-case-context details')"),null);await screenshotTop('lesson-challenge-desktop');await size(390,844);await screenshotTop('lesson-challenge-mobile');await size(1440,1000);
  await click('View Full Case');await wait("document.querySelector('dialog')?.open");
  assert.equal(await evaluate("document.querySelectorAll('dialog .material-card').length"),8);
  await evaluate("document.querySelector('dialog .material-card button').click()");await wait("document.querySelector('dialog .material-full-text')");assert.equal(await evaluate("document.querySelector('dialog .material-full-text').textContent===JSON.parse(sessionStorage.getItem('lesson-test-case')).scenario.story"),true);await click('Close Document');
@@ -102,15 +102,15 @@ async function main(){
  await setText('#stage-extract',draft);
  for(const [stage,title,next]of [['extract','Extract','Continue to Check'],['check','Check','Continue to Flag'],['flag','Flag','Review My Complete Agent']]){
   await wait("document.querySelector('#stage-"+stage+"')");await click('Test My '+title+' Instructions');await wait("document.querySelector('.stage-test-output .test-badge.current')");
-  await screenshotTop('lesson-builder-'+stage);await click(next);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.stage-test-output>.output-section>h4')].map(el=>el.textContent)"),['AI output','Evaluation feedback','Improvement guidance']);assert.equal(await evaluate("[...document.querySelectorAll('.stage-test-output .output-original')].every(el=>!el.open)"),true);if(stage==='extract'){assert.equal(await evaluate("document.querySelector('.stage-test-output .output-fields').textContent.includes('3 years (part time)')"),true);}await evaluate("document.querySelector('.stage-test-output').scrollIntoView({block:'start'})");await screenshot('lesson-output-'+stage);if(stage==='flag')assert.equal(await evaluate("document.querySelectorAll('.stage-test-output .decision-output>.ai-output .output-prose p').length"),1);await screenshotTop('lesson-builder-'+stage);await click(next);
  }
- await wait("document.querySelectorAll('.agent-summary').length===3");await screenshotTop('lesson-builder-final-review');
+ await wait("document.querySelectorAll('.agent-summary').length===3");assert.equal(await evaluate("document.querySelectorAll('.review-stage-output').length"),3);await evaluate("document.querySelector('.agent-summary').open=true;document.querySelector('.review-stage-output').open=true");assert.equal(await evaluate("document.querySelector('.review-stage-output .output-fields').textContent.includes('3 years (part time)')"),true);await screenshotTop('lesson-builder-final-review');
  await goStage('Extract');assert.equal(await evaluate("document.querySelector('#stage-extract').value"),draft);
  await click('Back to Scenario');await wait("document.querySelector('#briefing-tab-mission')");await click("I'm Ready to Build My Agent");await wait("document.querySelector('#stage-extract')");
  assert.equal(await evaluate("document.querySelector('#stage-extract').value"),draft);await goStage('Final Review');await click('Run My Complete Agent');await wait("document.querySelector('.run-result-summary')");assert.equal(await evaluate("document.querySelector('h1').textContent"),'Feedback & Results');
  assert.equal(await evaluate("document.querySelector('.run-result-summary h2').textContent"),'60%');await screenshotTop('lesson-results-desktop');await size(390,844);await screenshotTop('lesson-results-mobile');await size(1440,1000);
  assert.equal(await evaluate("document.querySelector('a[href=\"/stakeholders\"]').getAttribute('aria-disabled')"),'true');
- await click('Investigate My Results');await wait("document.querySelectorAll('.investigation-card').length===2");await click('Investigate this record');await click('Inspect all stage outputs');await wait("document.querySelector('dialog')?.open");assert.equal(await evaluate("document.querySelectorAll('.trace-stage pre').length"),3);await click('Close inspection');await click('Next: Improve My Agent');await wait("document.querySelector('#improvement-reflection')");
+ await click('Investigate My Results');await wait("document.querySelectorAll('.investigation-card').length===2");await click('Investigate this record');await click('Inspect all stage outputs');await wait("document.querySelector('dialog')?.open");assert.equal(await evaluate("document.querySelectorAll('.trace-stage>.output-section').length"),3);await click('Close inspection');await click('Next: Improve My Agent');await wait("document.querySelector('#improvement-reflection')");
  assert.equal(await evaluate("document.querySelector('.improvement-guide').open"),false);await evaluate("document.querySelector('.improvement-guide').open=true");assert.equal(await evaluate("document.querySelectorAll('.improvement-area dl').length"),3);assert.ok(await evaluate("document.querySelector('.improvement-guide').textContent.includes('What may need attention')"));await evaluate("document.querySelector('.improvement-guide').open=false");
  await setText('#improvement-reflection','I will clarify how to handle missing evidence and compare the resulting outputs.');await click('Save Reflection');await wait("document.querySelector('.learning-status')?.textContent.includes('Reflection saved')");await screenshotTop('lesson-improve-desktop');
  await click('Return to Agent Builder & Improve My Instructions');await wait("document.querySelectorAll('.agent-summary').length===3");await click('Run My Complete Agent');await wait("document.querySelector('.run-result-summary h2')?.textContent==='80%'");
