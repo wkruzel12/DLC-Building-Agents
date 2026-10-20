@@ -1,5 +1,5 @@
 // Optional real-browser integration check. Requires Windows Edge and a running dev server.
-// Verifies briefing and reference materials. Makes three real isolated stage tests; no full simulation attempts.
+// Verifies briefing, public reference materials, and combined-builder drafts without model calls.
 const fs=require('node:fs');
 const path=require('node:path');
 const os=require('node:os');
@@ -80,23 +80,17 @@ async function main(){
  assert.equal(await evaluate("document.body.textContent.includes('TEST_ONLY_PRIVATE_GRADE')"),false);
  await evaluate("document.querySelector('#briefing-tab-materials').click()");await wait("document.querySelectorAll('.material-card').length===5");await setSearch('A-10');await wait("document.querySelectorAll('.material-card').length>=1");assert.equal(await evaluate("document.querySelector('.material-library').textContent.includes('A-10')"),true);
  if(process.env.LAB_TEST_BRIEFING_ONLY==='1'){console.log('Sample, uploaded ten-record and non-hiring briefings passed: exact three sections, all original records, numbered criteria, privacy, mission, saved selection, and mobile layout. No model calls.');return;}
- await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.body.textContent.includes('AI Agent Builder')");await wait("document.querySelector('#stage-extract')");
+
+ await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.querySelector('#instruction-extract')");
  const draft='Find documented stock demand, request references, and possible duplicate evidence. Do not assume missing facts.';
- await evaluate("(()=>{const el=document.querySelector('#stage-extract');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(draft)+");el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");await wait("document.querySelector('#stage-extract').value==="+JSON.stringify(draft));
- async function drawer(stage){
-  const before=await evaluate("document.querySelector('#stage-"+stage+"').value");await evaluate("document.querySelector('.builder-materials').open=true");await click('View Case Materials');await wait("document.querySelector('dialog.case-materials-drawer')?.open");await setSearch('');await setFilter('requirements');await wait("document.querySelectorAll('dialog .material-card').length===1");await evaluate("document.querySelector('dialog .material-card button').click()");await wait("document.querySelector('dialog .material-full-text')?.textContent.includes('documented demand')");await click('Close Document');
-  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(250);assert.equal(await evaluate("document.querySelector('dialog').getBoundingClientRect().width<=innerWidth"),true);assert.equal(await evaluate("document.querySelector('dialog').scrollWidth<=document.querySelector('dialog').clientWidth+1"),true);await screenshot('materials-drawer-'+stage+'-mobile');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});await wait("!document.querySelector('dialog.case-materials-drawer')");
-  assert.equal(await evaluate("document.querySelector('#stage-"+stage+"').value"),before);assert.equal(await evaluate("document.activeElement.textContent.includes('View Case Materials')"),true);await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
- }
- await drawer('extract');
- for(const [stage,title,next]of [['extract','Extract','Continue to Check'],['check','Check','Continue to Flag'],['flag','Flag','Review My Complete Agent']]){
-  if(stage!=='extract')await drawer(stage);
-  await click('Test My '+title+' Instructions');await wait("document.querySelector('.stage-test-output .test-badge.current')",60000);await click(next);if(stage==='extract')await wait("document.querySelector('#stage-check')");if(stage==='check')await wait("document.querySelector('#stage-flag')");
- }
- await wait("document.querySelectorAll('.agent-summary').length===3");assert.equal(await evaluate("document.querySelectorAll('.agent-summary .test-badge.current').length"),3);
- await evaluate("document.querySelector('.builder-materials').open=true");await click('Read case briefing');await wait("document.querySelector('#briefing-tab-mission').getAttribute('aria-selected')==='true'");await click("I'm Ready to Build My Agent");await wait("document.querySelectorAll('.agent-summary').length===3");assert.equal(await evaluate("document.querySelector('.agent-summary p').textContent"),draft);
+ for(const name of ['extract','check','flag'])await evaluate("(()=>{const el=document.querySelector('#instruction-"+name+"');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(draft)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()");
+ await click('Case materials');await wait("document.querySelector('dialog.case-materials-drawer')?.open");await setSearch('');await setFilter('requirements');await wait("document.querySelectorAll('dialog .material-card').length===1");await evaluate("document.querySelector('dialog .material-card button').click()");await wait("document.querySelector('dialog .material-full-text')?.textContent.includes('documented demand')");await click('Close Document');
+ await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(250);assert.equal(await evaluate("document.querySelector('dialog').scrollWidth<=document.querySelector('dialog').clientWidth+1"),true);await screenshot('materials-combined-builder-mobile');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});await wait("!document.querySelector('dialog.case-materials-drawer')");
+ for(const name of ['extract','check','flag'])assert.equal(await evaluate("document.querySelector('#instruction-"+name+"').value"),draft);
+ assert.equal(await evaluate("document.activeElement.textContent.includes('Case materials')"),true);await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+ await click('Next: Review My Instructions');await wait("document.querySelector('.assembled-instructions')");await click('Back to Scenario');await wait("document.querySelector('#briefing-tab-mission').getAttribute('aria-selected')==='true'");await click("I'm Ready to Build My Agent");await wait("document.querySelector('.assembled-instructions')");assert.ok(await evaluate("document.querySelector('.assembled-instructions').textContent.includes("+JSON.stringify(draft)+")"));
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')||'[]').length"),0);
- console.log('Sample and non-hiring briefing tabs, full public materials, search/filter, exact IDs, full text, privacy, refresh persistence, keyboard focus, mobile drawer, preserved drafts, and all three real stage tests passed.');
+ console.log('Sample, ten-record and non-hiring briefings, source privacy, saved materials, keyboard/mobile drawer, and all three combined-builder drafts passed. No AI calls or full runs.');
 }
 main().catch(async error=>{console.error(error.message);await global.__labDebug?.();process.exitCode=1;}).finally(()=>{socket?.close();browser.kill();});

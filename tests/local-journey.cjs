@@ -53,35 +53,17 @@ async function main(){
  await click('Try Sample Case');await wait("document.querySelector('.selected-case')?.textContent.includes('Screening analyst applications')");assert.equal(await evaluate('location.pathname'),'/');await click('Continue');await wait("location.pathname==='/scenario'&&document.body?.textContent.includes('Screening analyst applications')");await screenshot('scenario-desktop');
 
  await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.body?.textContent.includes('AI Agent Builder')");
- await wait("document.querySelector('#stage-extract')");
- assert.equal(await evaluate("document.querySelectorAll('.focused-editor textarea').length"),1);
- assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
- const draftExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.drafts[f.caseId]||f.builders[f.caseId]?.tests.extract[0]?.steps||null;})()";
- const progressExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.builders[f.caseId];})()";
- async function goStage(name){await evaluate("(()=>{const b=[...document.querySelectorAll('.builder-progress button')].find(b=>b.querySelector('strong')?.textContent==="+JSON.stringify(name)+");if(!b||b.disabled)throw Error('Stage navigation unavailable');b.click();return true;})()");}
- async function practice(name){
-  const before=await evaluate(progressExpression+"?.tests."+name.toLowerCase()+"?.[0]?.id");
-  await click('Test My '+name+' Instructions');
-  await wait("document.querySelector('.stage-test-output .test-badge.current')&&("+progressExpression+").tests."+name.toLowerCase()+"[0]?.id!=="+JSON.stringify(before||null),60000);
-  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')||'[]').length"),0);
- }
- await practice('Extract');const initial=await evaluate(draftExpression);
- await click('Continue to Check');await wait("document.querySelector('#stage-check')");
- await send('Page.reload');await wait("document.querySelector('#stage-check')");
- assert.deepEqual(await evaluate(draftExpression),initial);
- assert.ok(await evaluate("document.querySelector('.stage-input').textContent.includes('Extract output')"));
- await practice('Check');await click('Continue to Flag');await wait("document.querySelector('#stage-flag')");await practice('Flag');
- await click('Review My Complete Agent');await wait("document.querySelectorAll('.agent-summary').length===3");
- assert.equal(await evaluate("document.querySelectorAll('.agent-summary .test-badge.current').length"),3);
- await screenshot('builder-review-desktop');
- await goStage('Extract');await wait("document.querySelector('#stage-extract')");await screenshot('builder-desktop');
- await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(300);
- assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await screenshot('builder-mobile');
- await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
- await goStage('Final Review');await wait("document.querySelectorAll('.agent-summary').length===3");
 
- await click('Run My Complete Agent');await wait("document.body?.textContent.includes('Running your agent on 5 records')");
- await wait("location.pathname==='/results'&&document.querySelectorAll('[role=tab]').length===3",140000);
+ await wait("document.querySelector('#instruction-extract')");assert.equal(await evaluate("document.querySelectorAll('.combined-fields textarea').length"),3);
+ const draftExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.drafts[f.caseId]||null;})()";
+ const progressExpression="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.builders[f.caseId];})()";
+ async function setInstruction(name,value){await evaluate("(()=>{const el=document.querySelector('#instruction-"+name+"');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(value)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()");}
+ const initial={extract:'Find the facts and evidence relevant to the case criteria. Preserve original sources and identify missing information.',check:'Compare each qualification against the case requirements using documented evidence. Identify unclear or missing evidence.',flag:'Ignore irrelevant information and unsupported claims. Choose only case-supported actions and refer uncertainty for human review when permitted.'};
+ for(const [name,value]of Object.entries(initial))await setInstruction(name,value);
+ await screenshot('builder-desktop');await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(250);assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await screenshot('builder-mobile');await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+ await click('Next: Review My Instructions');await send('Page.reload');await wait("document.querySelector('.assembled-instructions')");assert.deepEqual(await evaluate(draftExpression),initial);await screenshot('builder-review-desktop');
+ async function testAndOpenResults(){await click('Test My AI Agent');await wait("document.querySelector('.combined-score')",180000);assert.equal(await evaluate('location.pathname'),'/workbench');await click('Feedback & Results');await wait("location.pathname==='/results'&&document.querySelectorAll('[role=tab]').length===3");}
+ await testAndOpenResults();
  assert.equal(await evaluate("document.querySelectorAll('[role=tabpanel]').length"),1);
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1'))[0].results.length"),5);
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1'))[0].results.some(r=>'expected_decision' in r)"),false);
@@ -99,24 +81,18 @@ async function main(){
  await click('Next: Improve My Agent');await wait("document.querySelector('#improvement-reflection')");
  assert.equal(await evaluate("document.querySelector('.ai-suggestions')===null"),true);
  async function reflect(text){await evaluate("(()=>{const el=document.querySelector('#improvement-reflection');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(text)+");el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");await click('Save Reflection');await wait("document.querySelector('.learning-status')?.textContent.includes('Reflection saved')");}
- async function returnBuilder(){await evaluate("(()=>{const b=[...document.querySelectorAll('.next-learning-actions button')].find(b=>b.textContent.includes('Improve My Instructions')||b.textContent.includes('Improve My Agent Anyway'));b.click();return true;})()");await wait("location.pathname==='/workbench'&&document.querySelectorAll('.agent-summary').length===3");}
+ async function returnBuilder(){await evaluate("(()=>{const b=[...document.querySelectorAll('.next-learning-actions button')].find(b=>b.textContent.includes('Improve My Instructions')||b.textContent.includes('Improve My Agent Anyway'));b.click();return true;})()");await wait("location.pathname==='/workbench'&&document.querySelector('#instruction-extract')");}
  await reflect('I will clarify what counts as equivalent evidence so uncertain records are evaluated consistently.');
  await screenshot('results-improve');await returnBuilder();assert.deepEqual(await evaluate(draftExpression),initial);
- await goStage('Check');await wait("document.querySelector('#stage-check')");
- const revised=initial.check+' Explicitly consider equivalent relevant experience.';
- await evaluate("(()=>{const el=document.querySelector('#stage-check');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(revised)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()");
- await wait("document.querySelector('#stage-check').value==="+JSON.stringify(revised));await goStage('Final Review');await wait("document.querySelectorAll('.agent-summary').length===3");
- assert.equal(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Run My Complete Agent').disabled"),true);
- assert.equal(await evaluate("document.querySelectorAll('.agent-summary .test-badge.current').length"),1);
- await goStage('Check');await wait("document.querySelector('#stage-check')");const checkBefore=await evaluate("("+progressExpression+").tests.check[0].id");await click('Test My Check Instructions');await wait("document.querySelector('.stage-test-output .test-badge.current')&&("+progressExpression+").tests.check[0].id!=="+JSON.stringify(checkBefore),60000);
- await click('Continue to Flag');await wait("document.querySelector('#stage-flag')");const flagBefore=await evaluate("("+progressExpression+").tests.flag[0].id");await click('Test My Flag Instructions');await wait("document.querySelector('.stage-test-output .test-badge.current')&&("+progressExpression+").tests.flag[0].id!=="+JSON.stringify(flagBefore),60000);
- await click('Review My Complete Agent');await wait("document.querySelectorAll('.agent-summary').length===3");await click('Run My Complete Agent');await wait("location.pathname==='/results'&&document.querySelectorAll('[role=tab]').length===3",140000);
+
+ const revised=initial.check+' Explicitly consider equivalent relevant experience.';const checkBefore=await evaluate('('+progressExpression+').tests.check[0].id');
+ await setInstruction('check',revised);await click('Next: Review My Instructions');await testAndOpenResults();assert.notEqual(await evaluate('('+progressExpression+').tests.check[0].id'),checkBefore);
  await send('Page.reload');await wait("document.querySelectorAll('.attempt-button').length===2");
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).filter(a=>a.errors===0).length"),2);
  await evaluate("document.querySelector('.learning-history').open=true;document.querySelector('#compare-attempt').value=document.querySelector('#compare-attempt option:nth-child(2)').value;document.querySelector('#compare-attempt').dispatchEvent(new Event('change',{bubbles:true}));true;");await wait("document.querySelector('.attempt-comparison')");
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(300);assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await screenshot('results-mobile');
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await evaluate("document.querySelector('#results-tab-improve').click()");await wait("document.querySelector('#improvement-reflection')");await reflect('I will compare each recorded output with my criteria and make uncertainty handling more explicit.');await returnBuilder();
- await click('Run My Complete Agent');await wait("location.pathname==='/results'&&document.querySelectorAll('[role=tab]').length===3",140000);
+ await click('Next: Review My Instructions');await testAndOpenResults();
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).length"),3);
  await evaluate("document.querySelector('#results-tab-improve').click()");await wait("document.querySelector('.ai-suggestions')");
  const instructionsBefore=await evaluate(draftExpression);await click('Get AI Suggestions');await wait("document.querySelectorAll('.ai-suggestions article').length>0",60000);assert.deepEqual(await evaluate(draftExpression),instructionsBefore);
@@ -129,7 +105,7 @@ async function main(){
  console.log('Three full runs, five real stage tests, three-tab navigation, keyboard navigation, hints, reflection persistence, actual comparisons, optional real coaching, unchanged drafts, and both stakeholder openings passed.');
  await navigate('/results');await wait("document.querySelectorAll('[role=tab]').length===3");await evaluate("document.querySelector('#results-tab-improve').click()");await wait("document.querySelector('#improvement-reflection')");await returnBuilder();
  await evaluate("window.__originalFetch=window.fetch;window.fetch=(url,options)=>url==='/api/local-demo'?Promise.resolve(new Response(JSON.stringify({error:'Test rate limit. Please retry shortly.'}),{status:429,headers:{'Content-Type':'application/json'}})):window.__originalFetch(url,options)");
- await click('Run My Complete Agent');await wait("document.querySelector('[role=alert]')?.textContent.includes('Test rate limit')");assert.equal(await evaluate('location.pathname'),'/workbench');assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).length"),3);
+ await click('Next: Review My Instructions');await click('Test My AI Agent');await wait("document.querySelector('[role=alert]')?.textContent.includes('AI testing is busy')");assert.equal(await evaluate('location.pathname'),'/workbench');assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).length"),3);
  console.log('AI failure stays in builder, shows an error, and preserves all attempts and saved reflections.');
 
 }

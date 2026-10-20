@@ -1,5 +1,7 @@
 import {learningTarget} from '@/lib/learning-config';
-import './globals.css';import type {Metadata} from 'next';
+import './globals.css';
+import './agent-theme.css';
+import type {Metadata} from 'next';
 import {FlowProvider} from '@/components/lab/FlowProvider';
 import {LabShell} from '@/components/lab/LabShell';
 import {localDemoEnabled} from '@/lib/local-demo';

@@ -18,7 +18,7 @@ async function main(){
  socket=new WebSocket(target.webSocketDebuggerUrl);
  await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
  let seq=0;const pending=new Map();
- socket.onmessage=event=>{const value=JSON.parse(event.data);if(value.method==='Runtime.exceptionThrown')console.error('Browser exception:',value.params.exceptionDetails.exception?.description||value.params.exceptionDetails.text);if(value.method==='Runtime.consoleAPICalled'&&value.params.type==='error')console.error('Browser console:',value.params.args.map(arg=>arg.value||arg.description).join(' ').slice(0,1500));if(value.id){const request=pending.get(value.id);if(request){pending.delete(value.id);clearTimeout(request.timer);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}}};
+ socket.onmessage=event=>{const value=JSON.parse(event.data);if(value.method==='Page.javascriptDialogOpening')socket.send(JSON.stringify({id:++seq,method:'Page.handleJavaScriptDialog',params:{accept:true}}));if(value.method==='Runtime.exceptionThrown')console.error('Browser exception:',value.params.exceptionDetails.exception?.description||value.params.exceptionDetails.text);if(value.method==='Runtime.consoleAPICalled'&&value.params.type==='error')console.error('Browser console:',value.params.args.map(arg=>arg.value||arg.description).join(' ').slice(0,1500));if(value.id){const request=pending.get(value.id);if(request){pending.delete(value.id);clearTimeout(request.timer);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}}};
  function send(method,params={}){return new Promise((resolve,reject)=>{const id=++seq;const timer=setTimeout(()=>{pending.delete(id);reject(Error('Browser command timed out: '+method));},20000);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params}));});}
  async function evaluate(expression){const value=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(value.exceptionDetails)throw Error(value.exceptionDetails.text+': '+(value.result?.description||''));return value.result?.value;}
  async function wait(expression,timeout){return until(()=>evaluate("Boolean("+expression+")"),timeout);}
@@ -30,75 +30,73 @@ async function main(){
  await send('Page.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});await send('Runtime.enable');await navigate('/');console.log('Browser connected on port',port);
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
 
- const mock=`(()=>{
- const original=window.fetch;window.__requests=[];
+﻿ const mock=String.raw`(()=>{
+ const original=window.fetch;window.__requests=[];window.__mode='success';
+ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
  window.fetch=async(url,options)=>{
   if(url==='/api/stage-test'){
-   const input=JSON.parse(options.body);window.__requests.push(input);
-   if(window.__failTest)return new Response(JSON.stringify({error:'Technical provider configuration error'}),{status:502});
-   const previous=['extract','check','flag'].slice(0,['extract','check','flag'].indexOf(input.stage));
-   const upstream=previous.map(name=>JSON.parse(input.upstream[name]).id);
-   const value={id:crypto.randomUUID(),stage:input.stage,record_id:input.record_id,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+3600000).toISOString(),output:input.stage==='extract'?'Relevant evidence: documented experience.':input.stage==='check'?'Evidence compared with the stated requirements.':'Recommendation based on evaluated evidence.',steps:Object.fromEntries(Object.entries(input.steps).map(([k,v])=>[k,v.trim()])),upstream_ids:upstream,...(input.stage==='flag'?{decision:'advance',reason:'Practice explanation.'}:{})};
-   return new Response(JSON.stringify({...value,receipt:JSON.stringify(value)}),{headers:{'Content-Type':'application/json'}});
+   const input=JSON.parse(options.body);window.__requests.push({url,...input});
+   if(window.__mode==='readiness-fail')return json({error:'Private provider details'},502);
+   const prior=['extract','check','flag'].slice(0,['extract','check','flag'].indexOf(input.stage));
+   const value={id:crypto.randomUUID(),stage:input.stage,record_id:input.record_id,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+3600000).toISOString(),output:JSON.stringify({evidence:'Original "quoted" evidence (uncertain).',source:input.record_id}),steps:Object.fromEntries(Object.entries(input.steps).map(([k,v])=>[k,v.trim()])),upstream_ids:prior.map(name=>JSON.parse(input.upstream[name]).id),...(input.stage==='flag'?{decision:'human_review',reason:'Uncertain evidence requires permitted human review.'}:{})};
+   return json({...value,receipt:JSON.stringify(value)});
   }
-  if(url==='/api/local-demo'){window.__run=JSON.parse(options.body);return new Response(JSON.stringify({error:'Practice full-run failure. Try again.'}),{status:429});}
-  return original(url,options);
+  if(url==='/api/local-demo'){
+   const input=JSON.parse(options.body);window.__requests.push({url,...input});
+   if(window.__mode==='run-fail')return json({error:'Testing is temporarily unavailable. Please retry.'},503);
+   const scenario=JSON.parse(sessionStorage.getItem('combined-case')).scenario,n=scenario.items.length;
+   const count=Number(sessionStorage.getItem('combined-runs')||0)+1;
+   const correct=count===1?Math.floor(n*.6):Math.floor(n*.8);
+   const value={id:crypto.randomUUID(),attempt_number:count,created_at:new Date().toISOString(),steps:input.steps,accuracy:Math.round(100*correct/n),mode:'openai',errors:0,planted_caught:0,planted_total:0,results:scenario.items.map((item,i)=>({item_id:item.id,label:item.label,decision:scenario.decisions[0],match:i<correct,reason:'Source evidence (without guessing).',outputs:{extract:JSON.stringify({evidence:'Original facts.',id:item.id}),check:'**Evidence**\n\n- Compare the actual requirement.\n- Do not assume missing facts.',flag:JSON.stringify({decision:scenario.decisions[0],reason:'Source evidence (without guessing).'})},expected_decision:'PRIVATE_GRADING_SENTINEL'}))};
+   if(window.__mode==='partial')value.results.pop();
+   if(window.__mode==='invalid-grade')value.accuracy=99;
+   if(window.__mode==='success')sessionStorage.setItem('combined-runs',String(count));
+   return json(value);
+  }
+  if(url==='/api/attempt-learning'){const input=JSON.parse(options.body);return json({reflection:input.reflection,acknowledged_below_target:false});}
+  const response=await original(url,options);
+  if(typeof url==='string'&&url.startsWith('/api/cases/')&&response.ok)sessionStorage.setItem('combined-case',JSON.stringify(await response.clone().json()));
+  return response;
  };
  })()`;
  await send('Page.addScriptToEvaluateOnNewDocument',{source:mock});await evaluate(mock);
- await wait("document.querySelector('#case-file')");await click('Try Sample Case');await wait("document.querySelector('.selected-case')");await navigate('/workbench');await wait("document.querySelector('#stage-extract')");
- const progress="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.builders[f.caseId];})()";
- const drafts="(()=>{const f=JSON.parse(localStorage.getItem('agent-lab.flow.v1.local'));return f.drafts[f.caseId]||f.builders[f.caseId]?.tests.extract[0]?.steps;})()";
- async function go(name){await evaluate("(()=>{const b=[...document.querySelectorAll('.builder-progress button')].find(b=>b.querySelector('strong').textContent==="+JSON.stringify(name)+");if(!b||b.disabled)throw Error('Stage locked');b.click();})()");}
- async function practice(name){await click('Test My '+name+' Instructions');await wait("document.querySelector('.stage-test-output .test-badge.current')");}
- async function edit(text){await evaluate("(()=>{const el=document.querySelector('.focused-editor textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(text)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()");}
- assert.equal(await evaluate("document.querySelectorAll('.builder-progress li').length"),4);
- assert.equal(await evaluate("document.querySelectorAll('.focused-editor textarea').length"),1);
- assert.equal(await evaluate("document.querySelector('.builder-help').open"),false);
- assert.equal(await evaluate("document.querySelector('.stage-test-output')===null"),true);
- assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
- assert.equal(await evaluate("document.querySelectorAll('.builder-progress button:disabled').length"),3);
- await screenshot('simple-builder-extract');
- await evaluate("document.querySelector('.builder-help summary').click()");assert.equal(await evaluate("document.querySelector('.builder-help').open"),true);
- assert.equal(await evaluate("document.querySelector('.builder-help').textContent.includes('Common mistake')"),true);
- await evaluate("document.querySelector('.builder-help summary').click();document.querySelector('.builder-materials summary').click()");await click('View Case Materials');await wait("document.querySelector('dialog')?.open");await evaluate("document.querySelector('[aria-label=\"Close Case Materials\"]').click()");await wait("!document.querySelector('dialog')");await evaluate("document.querySelector('.builder-materials summary').click()");
- await edit('Extract only the documented evidence and mark missing facts.');await evaluate('window.__failTest=true');await click('Test My Extract Instructions');await wait("document.querySelector('.builder-workspace [role=alert]')");
- assert.equal(await evaluate("document.querySelector('[role=alert]').textContent.includes('Technical provider')"),false);
- assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
- await evaluate('window.__failTest=false');await practice('Extract');
- assert.equal(await evaluate("document.querySelectorAll('.builder-workspace .button.primary').length"),1);
- await screenshot('simple-builder-extract-result');
- await click('Continue to Check');await wait("document.querySelector('#stage-check')");
- assert.equal(await evaluate("document.querySelector('.builder-help').open"),false);
- assert.equal(await evaluate("document.querySelector('.stage-test-output')===null"),true);
- await screenshot('simple-builder-check');await practice('Check');await click('Continue to Flag');await wait("document.querySelector('#stage-flag')");
- assert.equal(await evaluate("document.querySelectorAll('.allowed-actions .decision').length>0"),true);
- await screenshot('simple-builder-flag');await practice('Flag');const original=await evaluate(drafts);
- await click('Review My Complete Agent');await wait("document.querySelectorAll('.agent-summary').length===3");
- assert.equal(await evaluate("document.querySelectorAll('.agent-summary .test-badge.current').length"),3);
- assert.equal(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Run My Complete Agent').disabled"),false);
- await screenshot('simple-builder-review');
- await send('Page.reload');await wait("document.querySelectorAll('.agent-summary').length===3");assert.deepEqual(await evaluate(drafts),original);
- await go('Check');await wait("document.querySelector('#stage-check')");await edit(original.check+' Mark uncertain evidence explicitly.');
- await wait("!document.querySelector('.stage-test-output .test-badge.current')");
- assert.equal(await evaluate("document.querySelector('.test-history')!==null"),true);
- await go('Final Review');assert.equal(await evaluate("document.querySelectorAll('.agent-summary .test-badge.current').length"),1);
- assert.equal(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Run My Complete Agent').disabled"),true);
- await go('Check');await practice('Check');await click('Continue to Flag');await practice('Flag');await click('Review My Complete Agent');
- await click('Run My Complete Agent');await wait("document.querySelector('[role=alert]')?.textContent.includes('Practice full-run failure')");
- assert.equal(await evaluate('window.__run.steps.check'),original.check+' Mark uncertain evidence explicitly.');
- await go('Extract');const oldRecord=await evaluate("document.querySelector('#practice-record').value");
- await evaluate("(()=>{const el=document.querySelector('#practice-record');el.value=el.options[1].value;el.dispatchEvent(new Event('change',{bubbles:true}));})()");
- await wait("document.querySelector('#practice-record').value!=="+JSON.stringify(oldRecord));
- assert.equal(await evaluate("document.querySelector('.stage-test-output .test-badge.current')===null"),true);
- assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
- await send('Page.reload');await wait("document.querySelector('#stage-extract')");assert.notEqual(await evaluate("document.querySelector('#practice-record').value"),oldRecord);
- for(const size of [{width:1024,height:900},{width:390,height:844},{width:320,height:740}]){
-  await send('Emulation.setDeviceMetricsOverride',{...size,deviceScaleFactor:1,mobile:size.width<700});await delay(200);
-  assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true,'No horizontal overflow at '+size.width);
-  assert.equal(await evaluate("new Set([...document.querySelectorAll('.builder-progress button')].map(b=>Math.round(b.getBoundingClientRect().top))).size"),1,'Four steps stay in one row');
-  await screenshot('simple-builder-'+size.width);
+ async function setText(selector,value){await evaluate("(()=>{const el=document.querySelector("+JSON.stringify(selector)+");Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,"+JSON.stringify(value)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()");}
+ const draft={extract:'Find the relevant facts (including "source quotes").\nKeep original record IDs.',check:'Verify each case requirement against actual evidence and state uncertainties.',flag:'Ignore irrelevant details. Do not credit unsupported claims; use only case-supported human review or rejection.'};
+ await wait("document.querySelector('#case-file')");await click('Try Sample Case');await wait("document.querySelector('.selected-case')");await navigate('/workbench');await wait("document.querySelector('#instruction-extract')");
+ assert.equal(await evaluate("document.querySelectorAll('.combined-fields textarea').length"),3);
+ assert.deepEqual(await evaluate("[...document.querySelectorAll('.combined-fields textarea')].map(el=>el.value)"),['','','']);
+ assert.equal(await evaluate("document.querySelector('.builder-progress')"),null);
+ assert.equal(await evaluate("document.querySelector('.combined-help').open"),false);
+ assert.equal(await evaluate("[...document.querySelectorAll('button')].find(el=>el.textContent.includes('Next: Review')).disabled"),true);
+ for(const [name,value]of Object.entries(draft))await setText('#instruction-'+name,value);
+ await screenshot('combined-write-desktop');await click('Next: Review My Instructions');await wait("document.querySelector('.assembled-instructions')");
+ assert.equal(await evaluate("document.querySelector('.assembled-instructions').textContent"),"LOOK FOR:\n"+draft.extract+"\n\nVERIFY:\n"+draft.check+"\n\nDON'T INCLUDE:\n"+draft.flag);
+ assert.deepEqual(await evaluate("[...document.querySelectorAll('.combined-actions>.button')].map(el=>el.textContent.trim())"),['Back to Edit','Test My AI Agent']);await screenshot('combined-review-desktop');
+ await evaluate("window.__mode='readiness-fail'");await click('Test My AI Agent');await wait("document.querySelector('[role=alert]')");assert.equal(await evaluate("window.__requests.some(r=>r.url==='/api/local-demo')"),false);assert.equal(await evaluate("document.body.textContent.includes('Private provider details')"),false);
+ await evaluate("window.__mode='run-fail'");await click('Test My AI Agent');await wait("document.querySelector('[role=alert]')?.textContent.includes('could not finish this test')");
+ assert.deepEqual(await evaluate("window.__requests.filter(r=>r.url==='/api/stage-test').slice(-3).map(r=>r.stage)"),['extract','check','flag']);
+ const checks=await evaluate("window.__requests.filter(r=>r.url==='/api/stage-test').length");
+ for(const mode of ['partial','invalid-grade']){
+  await evaluate('window.__mode='+JSON.stringify(mode));await click('Test My AI Agent');await wait("document.querySelector('.incomplete-run')");assert.equal(await evaluate("document.querySelector('.combined-score')"),null);assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')||'[]').length"),0);await click('Improve My Instructions');await wait("document.querySelector('#instruction-extract')");assert.equal(await evaluate("document.querySelector('#instruction-extract').value"),draft.extract);await click('Next: Review My Instructions');
  }
- console.log('All four stages, optional help/materials, failed/successful tests, progression gates, single primary action, saved drafts/results/record selection, stale tests, full-run payload and responsive layouts passed (mocked AI; no API credits used).');
+ await evaluate("window.__mode='success'");await click('Test My AI Agent');await wait("document.querySelector('.combined-score h3')?.textContent==='60%'");
+ assert.equal(await evaluate('location.pathname'),'/workbench');assert.equal(await evaluate("window.__requests.filter(r=>r.url==='/api/stage-test').length"),checks,'unchanged valid checks are reused');
+ assert.equal(await evaluate("document.querySelector('.combined-score>p').textContent"),'3 out of 5 decisions correct');assert.equal(await evaluate("document.body.textContent.includes('PRIVATE_GRADING_SENTINEL')"),false);
+ assert.equal(await evaluate("document.querySelector('.combined-details').open"),false);await evaluate("document.querySelector('.combined-details').open=true;document.querySelector('.combined-record').open=true");assert.ok(await evaluate("document.querySelector('.combined-record').textContent.includes('Original facts.')"));await screenshot('combined-results-desktop');
+ await click('Improve My Instructions');await wait("document.querySelector('#instruction-check')");await setText('#instruction-check',draft.check+' Clarify uncertainty.');await click('Next: Review My Instructions');assert.equal(await evaluate("[...document.querySelectorAll('button')].find(el=>el.textContent.includes('Test My AI Agent')).disabled"),true);
+ await click('Review my results');await wait("document.querySelector('#builder-reflection')");await setText('#builder-reflection','I will clarify uncertainty and check the evidence for each recommendation.');await click('Save Reflection');await wait("document.querySelector('.success-text')?.textContent.includes('Reflection saved')");
+ await click('Improve My Instructions');await wait("document.querySelector('#instruction-check')");await click('Next: Review My Instructions');await click('Test My AI Agent');await wait("document.querySelector('.combined-score h3')?.textContent==='80%'");
+ assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).length"),2);
+ assert.deepEqual(await evaluate("window.__requests.filter(r=>r.url==='/api/stage-test').slice(-2).map(r=>r.stage)"),['check','flag']);
+ await evaluate("[...document.querySelectorAll('summary')].find(el=>el.textContent.startsWith('Attempt History')).parentElement.open=true");assert.ok(await evaluate("document.querySelector('.combined-comparison').textContent.includes('20 percentage points')"));
+ await send('Page.reload');await wait("document.querySelector('.combined-score h3')?.textContent==='80%'");await click('Improve My Instructions');await wait("document.querySelector('#instruction-extract')");assert.equal(await evaluate("document.querySelector('#instruction-extract').value"),draft.extract);
+ const long='A longer exact instruction (not silently truncated). '.repeat(35);await setText('#instruction-extract',long);await send('Page.reload');await wait("document.querySelector('#instruction-extract')");assert.equal(await evaluate("document.querySelector('#instruction-extract').value"),long);await setText('#instruction-extract',draft.extract);
+ for(const size of [{width:1024,height:900},{width:768,height:900},{width:390,height:844},{width:320,height:740}]){await send('Emulation.setDeviceMetricsOverride',{...size,deviceScaleFactor:1,mobile:size.width<700});await delay(200);assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await screenshot('combined-write-'+size.width);}
+ await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+ await evaluate("document.querySelector('.combined-help').open=true");await evaluate("(()=>{const el=document.querySelector('#practice-record');el.value=el.options[1].value;el.dispatchEvent(new Event('change',{bubbles:true}));})()");await click('Next: Review My Instructions');await click('Test My AI Agent');await wait("document.querySelector('.combined-score')");assert.equal(await evaluate("window.__requests.filter(r=>r.url==='/api/stage-test').length"),3,'record change retests all internal operations after reload');
+ await navigate('/');await wait("document.querySelector('#case-file')");
+ const uploaded={...JSON.parse(fs.readFileSync('scenarios/resume-screener.json','utf8')),id:'combined-upload-test',title:'Uploaded combined workflow',items:[{id:'A-02',label:'First uploaded record',text:'Original source evidence A.'},{id:'A-10',label:'Second uploaded record',text:'Original source evidence B.'}],answer_key:[{item_id:'A-02',decision:'advance',planted:false,note:'PRIVATE_UPLOAD_NOTE'},{item_id:'A-10',decision:'human_review',planted:false,note:'PRIVATE_UPLOAD_NOTE'}]};
+ const uploadedFile=path.join(profile,'combined-upload.json');fs.writeFileSync(uploadedFile,JSON.stringify(uploaded));await fileUpload(uploadedFile);await wait("document.body.textContent.includes('Case validated.')");await navigate('/workbench');await wait("document.querySelector('#instruction-extract')");for(const [name,value]of Object.entries(draft))await setText('#instruction-'+name,value);await click('Next: Review My Instructions');await click('Test My AI Agent');await wait("document.querySelector('.combined-score')");assert.equal(await evaluate("document.querySelector('.combined-score>p').textContent"),'1 out of 2 decisions correct');assert.equal(await evaluate("document.body.textContent.includes('PRIVATE_UPLOAD_NOTE')"),false);
+ console.log('Combined builder passed: blank fields, exact review, signed readiness chain, API failures, partial/invalid grading, real denominators, reflection gates, iteration/history, saved long drafts, changed records, uploaded case, and responsive layouts. AI responses are mocked; no credits used.');
 }
 main().catch(async error=>{console.error(error.stack);await global.__labDebug?.();process.exitCode=1;}).finally(()=>{socket?.close();browser.kill();});

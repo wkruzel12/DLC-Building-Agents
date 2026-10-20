@@ -41,7 +41,7 @@ function AttemptResults({attempt}:{attempt:Attempt}){
  async function improve(stage?:LearningStage){
   if(!lab.reference)return;
   if(reflectionRequired&&(!savedReflection||reflection.trim()!==attempt.learning?.reflection)&&!await save('save'))return;
-  lab.editBuilder({...lab.builder,view:stage||'review'});router.push('/workbench');
+  lab.editBuilder({...lab.builder,view:'write'});router.push('/workbench');
  }
  return <div className="lesson-page results-lesson"><PageHeading step="STEP 4 / REVIEW & IMPROVE" title="Feedback & Results" description="See what happened, check the evidence, and decide what to change."/><CurrentObjective>{tab==='results'?'Review your score, then investigate the evidence.':tab==='investigate'?'Compare AI outputs with the original records and requirements.':'Use the recorded feedback to plan improvements or prepare for stakeholder review.'}</CurrentObjective>
  <div className="results-subheading"><div><strong>{attempt.scenario_title||lab.reference?.scenario.title||'Previous case'}</strong><span>Attempt {ordinal} · {learningPhase(ordinal)} · {new Date(attempt.created_at).toLocaleString()}</span></div><ModeBadge mode={attempt.mode} local={attempt.storage==='local'}/></div>

@@ -7,12 +7,13 @@ import {browserSupabase} from '@/lib/supabase-browser';
 import {canAccessWorkbench,isTcuEmail} from '@/lib/auth-access';
 import type {Attempt,CaseReference,Steps} from '@/lib/types';
 import {freshProgress,restoreProgress,type BuilderProgress} from '@/lib/builder-progress';
+import {inspectRunResponse,type RunOutcome} from '@/lib/combined-builder';
 
-export const defaultSteps:Steps={extract:'Extract the facts and evidence relevant to the evaluation criteria. Include equivalent experience where relevant. Do not assume missing information.',check:'Compare the extracted evidence against every evaluation criterion. Consider equivalent evidence and identify information that cannot be verified. Compare records when a decision requires a target.',flag:'Choose one of this case’s allowed decision types according to its criteria. When the action requires a target, identify the existing target record ID from the evidence. Explain the decision briefly; do not invent missing information.'};
+export const defaultSteps:Steps={extract:'',check:'',flag:''};
 const historyKey='agent-workbench.local-demo.v1';
 const flowKey='agent-lab.flow.v1';
 type Drafts=Record<string,Steps>;
-type Flow={canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:()=>Promise<void>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
+type Flow={canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt,stayInBuilder?:boolean)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>})=>Promise<RunOutcome>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
 const Context=createContext<Flow|null>(null);
 export function useLab(){const value=useContext(Context);if(!value)throw Error('Agent Lab context is unavailable');return value;}
 
@@ -47,7 +48,7 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
     stored=JSON.parse((local?localStorage:sessionStorage).getItem(storageKey)||'{}');
     if(!stored||typeof stored!=='object')stored={};
     const validDrafts:Drafts={};
-    for(const [id,value] of Object.entries(stored.drafts||{})){if(value&&['extract','check','flag'].every(key=>typeof value[key as keyof Steps]==='string'&&value[key as keyof Steps].length<=1500))validDrafts[id]=value;}
+    for(const [id,value] of Object.entries(stored.drafts||{})){if(value&&['extract','check','flag'].every(key=>typeof value[key as keyof Steps]==='string'&&value[key as keyof Steps].length<=100000))validDrafts[id]=value;}
     if(!controller.signal.aborted){setDrafts(validDrafts);setBuilders(stored.builders&&typeof stored.builders==='object'?stored.builders:{});setActiveId(stored.activeId||null);}
     if(local){
      const saved:unknown=JSON.parse(localStorage.getItem(historyKey)||'[]');
@@ -95,25 +96,28 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
  function updateAttemptLearning(id:string,value:AttemptLearning){if(currentIdentity.current!==identity)return;setHistory(previous=>{const next=previous.map(attempt=>attempt.id===id?{...attempt,learning:value}:attempt);if(local){try{localStorage.setItem(historyKey,JSON.stringify(next));}catch{setError('The reflection was saved on the server, but browser storage could not be updated.');}}return next;});}
  const completedTotal=Math.max(relevant.length,...relevant.map(a=>a.completed_count||0));
  const canReview=reviewAllowed(active,target,completedTotal);
- function selectAttempt(attempt:Attempt){setActiveId(attempt.id);router.push('/results');}
+ function selectAttempt(attempt:Attempt,stayInBuilder=false){setActiveId(attempt.id);if(!stayInBuilder)router.push('/results');}
  function reviewAttempt(attempt?:Attempt){const selected=attempt||active;if(selected){setActiveId(selected.id);if(!reviewAllowed(selected,target,completedTotal)){setError('Review your results first. After three completed simulations, you can acknowledge a below-target score and continue to stakeholders.');router.push('/results');return;}router.push('/stakeholders');}}
 
- async function run(){
-  if(runLock.current||!reference)return;
-  if(needsReflection){setActiveId(latest.id);setError('Save a brief reflection in the Improve tab before starting another complete simulation.');router.push('/results');return;}
-  if(Object.values(steps).some(value=>value.trim().length<10||value.length>1500)){setError('Each stage needs between 10 and 1,500 characters.');return;}
+ async function run(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>}):Promise<RunOutcome>{
+  if(runLock.current||!reference)return {kind:'failed'};
+  if(needsReflection){setActiveId(latest.id);setError('Save a brief reflection on your latest attempt before testing again.');if(!options?.stayInBuilder)router.push('/results');return {kind:'failed'};}
+  if(Object.values(steps).some(value=>value.trim().length<10||value.length>1500)){setError('Each instruction field needs between 10 and 1,500 characters. Your full draft is saved.');return {kind:'failed'};}
   runLock.current=true;setRunning(true);setError('');
   try{
+   await options?.beforeRun?.();
    const response=await fetch(local?'/api/local-demo':'/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:reference.case_id,steps})});
-   const body=await response.json();if(!response.ok)throw Error(body.error||'The agent could not complete this run.');
-   const next:Attempt={...body,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items};
+   const body=await response.json();if(!response.ok)throw Error(response.status===401||response.status===403?'Your session needs attention. Sign in again before testing.':response.status===429?'AI testing is busy or its credits are unavailable. Wait a moment and try again.':response.status>=500?'The AI could not finish this test. Try again shortly; your instructions are saved.':body.error||'The agent could not complete this run.');
+   const inspected=inspectRunResponse(body,reference.scenario,steps);if(inspected.kind==='incomplete')return inspected;
+   const next:Attempt={...inspected.attempt,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items};
    if(local){
     next.storage='local';next.attempt_number=body.attempt_number>0?body.attempt_number:Math.max(0,...history.filter(item=>item.case_id===reference.case_id).map(item=>item.attempt_number))+1;
    }
    const nextHistory=[next,...history];setHistory(nextHistory);setActiveId(next.id);
    if(local){try{localStorage.setItem(historyKey,JSON.stringify(nextHistory));}catch{setError('Run completed, but browser storage is full or unavailable. This attempt will be lost on refresh.');}}
-   router.push('/results');
-  }catch(error){setError(error instanceof Error?error.message:'Run failed. Please retry.');}finally{runLock.current=false;setRunning(false);}
+   if(!options?.stayInBuilder)router.push('/results');
+   return {kind:'complete',attempt:next};
+  }catch(error){setError(error instanceof TypeError?'Could not connect. Check your connection and retry.':error instanceof SyntaxError?'The AI response could not be read. Please retry. Your instructions are saved.':error instanceof Error?error.message:'Run failed. Please retry.');return {kind:'failed'};}finally{runLock.current=false;setRunning(false);}
  }
  async function signOut(){if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
 
