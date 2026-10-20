@@ -52,7 +52,7 @@ async function main(){
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await delay(200);await screenshot('upload-desktop');
  await click('Try Sample Case');await wait("document.querySelector('.selected-case')?.textContent.includes('Screening analyst applications')");assert.equal(await evaluate('location.pathname'),'/');await click('Continue');await wait("location.pathname==='/scenario'&&document.body?.textContent.includes('Screening analyst applications')");await screenshot('scenario-desktop');
 
- await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.body?.textContent.includes('Build Your AI Agent')");
+ await evaluate("document.querySelector('#briefing-tab-mission').click()");await click("I'm Ready to Build My Agent");await wait("document.body?.textContent.includes('AI Agent Builder')");
  await wait("document.querySelector('#stage-extract')");
  assert.equal(await evaluate("document.querySelectorAll('.focused-editor textarea').length"),1);
  assert.equal(await evaluate("document.querySelector('.stage-next button')===null"),true);
