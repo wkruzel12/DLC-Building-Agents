@@ -676,3 +676,54 @@ body{font-size:15px;line-height:1.65}
 .guided-app .ai-suggestions .ai-output p{margin-top:0}
 .guided-app .reflection-sections .ai-output p{font-size:14px;line-height:1.85;margin:0 0 10px}
 @media(max-width:600px){.full-case-context{font-size:15px;line-height:1.9}.output-section{padding:16px 0}.output-guidance{padding:15px}.output-fields .output-fields{padding-left:10px}.output-original>pre{padding:12px}.chat-message>.ai-output{padding:13px}}
+
+/* Use the available screen width, with gutters that scale down on laptops. */
+.workspace{max-width:none;padding:28px clamp(20px,2.4vw,48px) 20px}
+.app-grid{grid-template-columns:clamp(220px,17vw,262px) minmax(0,1fr)}
+.workspace>.card,.workspace>section,.briefing-activity,.material-library{min-width:0}
+
+/* Keep the document text and action on separate rows instead of competing
+   for the same flex line and squeezing headings into a few characters. */
+.material-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.material-card{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px 16px;padding:24px;align-content:start}
+.material-card>.icon-block{grid-column:1;grid-row:1;flex-shrink:0}
+.material-card>div{grid-column:2;min-width:0}
+.material-card h3{overflow-wrap:break-word;word-break:normal;margin-top:8px}
+.material-card p{max-width:65ch}
+.material-card .eyebrow{overflow-wrap:break-word;word-break:normal;line-height:1.6}
+.material-card>.button{grid-column:2;justify-self:start;margin:4px 0 0;max-width:100%;white-space:normal}
+.case-materials-drawer .material-grid{grid-template-columns:1fr}
+
+@media(min-width:701px) and (max-width:1200px){
+ .workspace{padding:24px 24px 18px}
+ .sidebar{padding-inline:10px}
+ .material-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .material-card{padding:20px;gap:12px}
+ .briefing-tabs>button,.results-tabs>button{min-width:0}
+}
+@media(max-width:900px){
+ .material-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+ .app-grid{display:block}
+ .workspace{padding:22px 16px 16px}
+ .material-card{padding:20px;grid-template-columns:36px minmax(0,1fr)}
+ .material-card>.button{grid-column:1 / -1;justify-self:stretch;width:100%}
+}
+
+
+
+/* Give each lesson the laptop's available width, without oversized side margins. */
+.journey-shell{width:100%;max-width:1680px;padding:0 clamp(20px,3vw,48px)}
+.guided-app .topbar{padding-inline:clamp(20px,3vw,48px)}
+.guided-app .lesson-page,.guided-app .simple-builder{width:100%;max-width:none}
+.guided-app .workspace{padding:26px 0 18px}
+.guided-app .workspace-footer{max-width:none}
+.guided-app .material-card{display:grid;grid-template-columns:40px minmax(0,1fr);padding:24px;gap:12px 16px}
+.guided-app .material-card>.button{grid-column:2;margin:4px 0 0;justify-self:start;white-space:normal;width:auto}
+@media(max-width:700px){
+ .journey-shell{padding:0 16px}
+ .guided-app .workspace{padding-top:20px}
+ .guided-app .material-card{padding:20px;grid-template-columns:36px minmax(0,1fr)}
+ .guided-app .material-card>.button{grid-column:1 / -1;justify-self:stretch;width:100%}
+}
