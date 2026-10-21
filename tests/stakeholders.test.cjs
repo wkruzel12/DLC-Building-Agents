@@ -24,7 +24,7 @@ test('personas are configurable metadata and summaries contain only actual autho
  assert.equal(summary.accuracy,20);assert.equal(summary.sample_size,5);assert.equal(summary.matched,1);assert.equal(summary.missed,4);assert.equal(summary.decision_counts.human_review,4);
  assert.ok(!JSON.stringify(summary).includes('PRIVATE_GRADING_NOTE'));assert.equal(summary.answer_key,undefined);
  assert.deepEqual(publicPersonas(scenario).map(item=>item.name),['Sarah Mitchell','Zack Johnson']);
- const instructions=stakeholderInstructions(scenario,attempt,'zack');assert.ok(instructions.includes('not proof of legal compliance'));assert.ok(instructions.includes('jurisdiction'));
+ const instructions=stakeholderInstructions(scenario,attempt,'zack');assert.ok(instructions.includes('not proof of legal compliance'));assert.ok(instructions.includes('jurisdiction'));assert.ok(instructions.includes('no more than 70 words'));assert.ok(instructions.includes('at most one short, direct question'));assert.ok(instructions.includes('Do not invent candidate details'));assert.ok(instructions.includes('Never stack questions'));
  assert.deepEqual(publicPersonas({...scenario,id:'uploaded-hiring-case'}).map(item=>item.id),['sarah','zack']);
  assert.throws(()=>publicPersonas({...scenario,id:'unconfigured-case',title:'Inventory allocation',story:'A warehouse allocates stock.',task:'Decide which inventory requests to approve.'}),/stakeholder setup/);
 });

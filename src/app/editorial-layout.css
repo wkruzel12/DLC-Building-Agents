@@ -165,3 +165,51 @@
 .agent-theme .results-lesson .page-heading{min-height:220px;padding-block:36px;margin-bottom:28px}
 @media(max-width:900px){.agent-theme .performance-summary.run-result-summary{grid-template-columns:1fr;gap:24px}.agent-theme .performance-charts{grid-template-columns:1fr;gap:12px}.agent-theme .performance-score h2{font-size:76px}.agent-theme .performance-kpis>div{padding-left:16px}}
 @media(max-width:500px){.agent-theme .performance-summary.run-result-summary{padding:24px 18px}.agent-theme .performance-kpis{gap:20px 14px}.agent-theme .performance-kpis dd{font-size:30px}.agent-theme .performance-kpis dd.metric-delta{font-size:23px}.agent-theme .performance-chart h3{font-size:21px}.agent-theme .performance-kpis>div{padding-left:10px}.agent-theme .results-lesson .page-heading{min-height:0;padding-block:28px}.agent-theme .accuracy-trend{min-height:130px}}
+
+/* A focused text conversation, with supporting information below it. */
+.agent-theme .stakeholder-lesson .page-heading{min-height:190px;padding-block:32px;margin-bottom:24px}
+.agent-theme .stakeholder-lesson .review-context-bar{padding:16px 20px;margin-bottom:24px;gap:20px}
+.agent-theme .stakeholder-lesson .review-attempt-choices .visible-choices{margin:0}
+.agent-theme .message-review.stakeholder-grid{display:block;grid-template-columns:none;gap:0}
+.agent-theme .conversation-surface{background:#fff;border:1px solid #ddd7e5;border-radius:18px;overflow:hidden;min-width:0}
+.agent-theme .conversation-switcher{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px;border-bottom:1px solid #e4dfe9}
+.agent-theme .conversation-switcher>h2{font-size:25px;line-height:1.3;margin:0;flex-shrink:0}
+.agent-theme .conversation-switcher .stakeholder-selection{display:flex;gap:10px;align-items:stretch;margin:0;max-width:760px;min-width:0;width:auto;flex:1}
+.agent-theme .conversation-switcher .stakeholder-card{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;margin:0;padding:12px 18px;border:1px solid #cfc4db;border-radius:10px;background:#fff;color:#3c2b47;text-align:left;min-height:78px;min-width:0;flex:1;box-shadow:none}
+.agent-theme .conversation-switcher .stakeholder-card.stakeholder-selected{border:2px solid #67209c;padding:11px 17px;background:#f3ebfa;color:#56117e}
+.agent-theme .conversation-switcher .stakeholder-card strong{font-size:16px;line-height:1.4}
+.agent-theme .conversation-switcher .persona-role{font-size:13px;line-height:1.5;color:inherit;display:block}
+.agent-theme .conversation-switcher .stakeholder-card small{font-size:11px;line-height:1.5;color:#72617c}
+.agent-theme .conversation-surface .chat-card{border:0;border-radius:0;margin:0;box-shadow:none;display:block;background:#fff;min-width:0}
+.agent-theme .conversation-surface .chat-heading{padding:14px 24px;border:0;background:#fff;display:flex;gap:12px;align-items:center}
+.agent-theme .conversation-surface .chat-heading h2{font-size:16px;margin:0;line-height:1.4}
+.agent-theme .conversation-surface .chat-heading p{font-size:12px;margin:2px 0 0}
+.agent-theme .conversation-surface .chat-heading>.persona-avatar{width:34px;height:34px;border-radius:50%;background:#211829;color:#fff;font-size:12px}
+.agent-theme .conversation-surface .chat-heading>.text-button{margin-left:auto;font-size:12px}
+.agent-theme .conversation-surface .chat-scroll{height:auto;min-height:280px;max-height:65vh;padding:24px;background:#fff;border:0;overflow:auto;overscroll-behavior:contain;display:block}
+.agent-theme .conversation-surface .chat-message{display:flex;align-items:flex-start;gap:12px;max-width:none;width:100%;margin:0 0 22px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.agent-theme .message-avatar{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#1b1722;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;margin-top:3px}
+.agent-theme .message-bubble{max-width:min(82%,78ch);padding:16px 20px;background:#f0edf3;color:#29202f;border-radius:6px 18px 18px 18px;min-width:0;overflow-wrap:anywhere}
+.agent-theme .chat-user .message-bubble{margin-left:auto;background:#632295;color:#fff;border-radius:18px 6px 18px 18px}
+.agent-theme .message-bubble p,.agent-theme .message-bubble .output-prose{font-size:16px;line-height:1.75;color:inherit;margin:0;white-space:pre-wrap}
+.agent-theme .message-bubble .output-prose p+p{margin-top:10px}
+.agent-theme .message-bubble .chat-message-meta{font-size:11px;line-height:1.5;display:flex;gap:14px;justify-content:space-between;color:#6a5c73;margin:0 0 8px}
+.agent-theme .chat-user .message-bubble .chat-message-meta{color:#eee1f8}
+.agent-theme .chat-user .message-bubble p{color:#fff}
+.agent-theme .conversation-surface .chat-thinking{padding:12px 0;font-size:14px;background:transparent}
+.agent-theme .conversation-surface .chat-composer{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'starters starters' 'label label' 'input send' 'hint hint';gap:10px 16px;padding:20px 24px;border-top:1px solid #e4dfe9;background:#fff}
+.agent-theme .conversation-surface .starter-questions{grid-area:starters;display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.agent-theme .conversation-surface .starter-questions button{font-size:12px;min-height:36px;padding:7px 12px;border:1px solid #d9c9e5;background:#faf6fe;border-radius:18px;color:#642b85;text-align:left}
+.agent-theme .conversation-surface .chat-composer>label{grid-area:label;font-size:15px;font-weight:650;margin:3px 0;color:#2d1d39}
+.agent-theme .conversation-surface .chat-composer>textarea{grid-area:input;width:100%;min-height:98px;font-size:16px;line-height:1.6;padding:14px 16px;border:1px solid #bca9c9;border-radius:10px;resize:vertical;margin:0}
+.agent-theme .conversation-surface .chat-composer>footer{grid-area:send;display:flex;flex-direction:column-reverse;gap:8px;align-items:flex-end;justify-content:flex-end;margin:0;max-width:150px}
+.agent-theme .conversation-surface .chat-composer>footer>span{font-size:10px;line-height:1.5;max-width:135px;color:#7a6a83}
+.agent-theme .conversation-surface .chat-composer .button{border-radius:10px;min-height:48px;padding:12px 24px;background:#632295;border-color:#632295}
+.agent-theme .conversation-surface .chat-composer>small{grid-area:hint;font-size:11px;line-height:1.6;color:#7a6a83;margin:0}
+.agent-theme .conversation-guidance{font-size:14px;line-height:1.8;margin:18px 0 32px}
+.agent-theme .message-review .stakeholder-profiles{margin-top:36px}
+.agent-theme .message-review .performance-panel{margin-top:32px}
+@media(max-width:900px){.agent-theme .conversation-switcher{align-items:flex-start;flex-direction:column;gap:18px}.agent-theme .conversation-switcher .stakeholder-selection{width:100%;max-width:none}.agent-theme .message-bubble{max-width:86%}}
+@media(max-width:600px){.agent-theme .conversation-switcher{padding:20px 16px}.agent-theme .conversation-switcher>h2{font-size:23px}.agent-theme .conversation-switcher .stakeholder-card{padding:10px 12px;min-height:84px}.agent-theme .conversation-switcher .stakeholder-card.stakeholder-selected{padding:9px 11px}.agent-theme .conversation-switcher .stakeholder-card strong{font-size:14px}.agent-theme .conversation-switcher .persona-role{font-size:12px}.agent-theme .conversation-surface .chat-heading{padding:12px 16px}.agent-theme .conversation-surface .chat-scroll{height:auto;max-height:60vh;padding:16px 12px}.agent-theme .conversation-surface .chat-message{gap:8px;margin-bottom:16px}.agent-theme .message-avatar{width:28px;height:28px;font-size:10px}.agent-theme .message-bubble{padding:12px 14px;max-width:calc(100% - 36px)}.agent-theme .chat-user .message-bubble{max-width:92%}.agent-theme .message-bubble p{font-size:15px}.agent-theme .conversation-surface .chat-composer{padding:16px;grid-template-columns:1fr;grid-template-areas:'starters' 'label' 'input' 'send' 'hint'}.agent-theme .conversation-surface .chat-composer>footer{flex-direction:row;justify-content:space-between;align-items:center;max-width:none}.agent-theme .conversation-surface .chat-composer>footer>span{max-width:170px}.agent-theme .stakeholder-lesson .page-heading{min-height:0;padding-block:28px}}
+
+.agent-theme .chat-user .message-bubble .chat-message-meta :is(strong,time){color:#f5eaff}
