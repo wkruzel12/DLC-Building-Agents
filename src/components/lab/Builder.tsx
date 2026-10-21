@@ -13,14 +13,15 @@ import {BuilderResults,RunRecords} from './BuilderResults';
 export {stages} from './builder-learning';
 
 export function Builder(){
- const lab=useLab(),[materialsOpen,setMaterialsOpen]=useState(false),[incomplete,setIncomplete]=useState<IncompleteRun|null>(null),[seconds,setSeconds]=useState(0);
+ const lab=useLab(),[materialsOpen,setMaterialsOpen]=useState(false),[incomplete,setIncomplete]=useState<IncompleteRun|null>(null),[seconds,setSeconds]=useState(0),[reviewRequested,setReviewRequested]=useState(false);
  const lock=useRef(false),heading=useRef<HTMLHeadingElement>(null);
  useEffect(()=>{if(!lab.running){setSeconds(0);return;}const start=Date.now(),timer=setInterval(()=>setSeconds(Math.floor((Date.now()-start)/1000)),1000);return()=>clearInterval(timer);},[lab.running]);
  if(!lab.reference)return <LessonFrame step="03 / AI AGENT BUILDER" title="AI Agent Builder" intro="Write, review, test, and improve your instructions."><EmptyCase/></LessonFrame>;
  const {scenario,case_id}=lab.reference,progress=lab.builder;
- const view=progress.view==='review'?'review':progress.view==='results'&&(lab.active||incomplete)?'results':'write';
+ // Saved review sessions reopen the editor; Review remains an explicit action in this visit.
+ const view=progress.view==='review'&&reviewRequested?'review':progress.view==='results'&&(lab.active||incomplete)?'results':'write';
  const problems=instructionProblems(lab.steps),record=scenario.items.find(item=>item.id===progress.record_id)||scenario.items[0];
- function navigate(next:'write'|'review'|'results'){lab.editBuilder({...progress,view:next});lab.setError('');setTimeout(()=>heading.current?.focus(),0);}
+ function navigate(next:'write'|'review'|'results'){setReviewRequested(next==='review');lab.editBuilder({...progress,view:next});lab.setError('');setTimeout(()=>heading.current?.focus(),0);}
  async function test(){
   if(lock.current||lab.running||problems.length||lab.needsReflection)return;
   lock.current=true;setIncomplete(null);let prepared=progress;
@@ -40,7 +41,7 @@ export function Builder(){
  </header>
  {view==='write'?<form onSubmit={event=>{event.preventDefault();if(!problems.length)navigate('review');else document.getElementById('instruction-'+problems[0].id)?.focus();}}>
  <div className="combined-fields">{instructionFields.map((field,index)=><section className="combined-field" key={field.id}><label htmlFor={'instruction-'+field.id}><span aria-hidden="true">{String(index+1).padStart(2,'0')}</span>{field.label}</label><p className="field-question" id={field.id+'-question'}>{field.question}</p><p className="field-explanation" id={field.id+'-description'}>{field.description}</p><p className="field-guidance" id={field.id+'-guidance'}>{field.guidance}</p><textarea id={'instruction-'+field.id} rows={3} value={lab.steps[field.id]} disabled={lab.running} placeholder={field.placeholder} aria-describedby={field.id+'-question '+field.id+'-description '+field.id+'-guidance'+(lab.steps[field.id].length>1500?' '+field.id+'-limit':'')} onChange={event=>lab.editSteps({...lab.steps,[field.id]:event.target.value})}/>{lab.steps[field.id].length>1500&&<p id={field.id+'-limit'} className="error-text">Your draft is saved. Shorten this field to the service limit of 1,500 characters before testing.</p>}</section>)}</div>
- <div className="combined-actions"><button type="submit" className="button primary" disabled={lab.running||problems.length>0}>Next: Review My Instructions<Icon name="arrow" size={17}/></button>{problems.length>0&&<p className="combined-hint">{problems[0].message}</p>}</div></form>
+ <div className="combined-actions"><button type="submit" className="button primary" disabled={lab.running||problems.length>0}>Next: Review My Instructions<Icon name="arrow" size={17}/></button><button type="button" className="button secondary" disabled={lab.running||problems.length>0||lab.needsReflection} onClick={()=>void test()}>{lab.running?'Testing...':'Test My AI Agent'}</button>{problems.length>0&&<p className="combined-hint">{problems[0].message}</p>}</div></form>
  :view==='review'?<>
  <pre className="assembled-instructions" aria-label="Your combined instructions">{combinedInstructions(lab.steps)}</pre>
  {problems.length>0&&<p className="error-text" role="alert">{problems[0].message}</p>}

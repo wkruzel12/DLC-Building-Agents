@@ -48,3 +48,17 @@ test('bold section headings and counted or named record headings keep applicant 
   assert.deepEqual(caseBriefing(s),{context:'Original context.',objective:'Original objective.',criteria:['Original criterion.']});
  }
 });
+
+test('scenario introduction excludes grading definitions and rejection notes without changing source rules',()=>{
+ const sample=publicScenario(loadScenario('resume-screener'));
+ const appendix='\n\nGrading decisions (definitions)\n- Advance: strong experience.\n- Human review: evidence needs confirmation.\n- Reject: a basic requirement failed.\n- Merge: duplicate record.\n\nNotes for rejected applicants\nRejections are logged for human oversight.';
+ const s={...sample,story:'Context\nOriginal context.\n\nObjective\nOriginal objective.\n\nEvaluation Criteria\n1. Preserve the first criterion.\n2. Preserve the second criterion.'+appendix},before=JSON.stringify(s);
+ assert.deepEqual(caseBriefing(s),{context:'Original context.',objective:'Original objective.',criteria:['Preserve the first criterion.','Preserve the second criterion.']});
+ assert.equal(JSON.stringify(s),before);
+ assert.ok(caseMaterials(s).some(material=>material.text.includes('Grading decisions (definitions)')));
+ for(const heading of ['Grading decisions (definitions)','Notes for rejected applicants']){
+  const tail='\n\n## '+heading+'\nSupplementary decision guidance.';
+  const projected=caseBriefing({...sample,story:sample.story+tail,task:sample.task+tail,requirements:sample.requirements+tail});
+  assert.equal(projected.context,sample.story);assert.equal(projected.objective,sample.task);assert.equal(projected.criteria.join(' '),sample.requirements);
+ }
+});

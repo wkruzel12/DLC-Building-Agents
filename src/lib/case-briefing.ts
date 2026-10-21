@@ -7,6 +7,7 @@ const headings:Record<string,Section>={
  'evaluation criteria':'criteria','business requirements':'criteria',requirements:'criteria',criteria:'criteria',
  records:'materials','applicant records':'materials','candidate records':'materials',applicants:'materials',candidates:'materials',resumes:'materials',
  'allowed decision types':'materials','allowed actions':'materials','decision rules':'materials','private grading key':'materials','grading key':'materials','answer key':'materials',stakeholders:'materials',
+ 'grading decisions':'materials','grading decisions (definitions)':'materials','notes for rejected applicants':'materials',
 };
 
 // Read only public text. This is a display projection, never a case/schema repair.
