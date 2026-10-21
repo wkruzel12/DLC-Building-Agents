@@ -96,8 +96,8 @@ async function main(){
  await evaluate("document.querySelector('[aria-label=\"Close Case Materials\"]').click()");await wait("!document.querySelector('dialog')");
  await evaluate("document.querySelector('#briefing-tab-scenario').focus()");await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});await wait("document.querySelector('#briefing-tab-materials').getAttribute('aria-selected')==='true'");
  await wait("document.querySelectorAll('.material-card').length===8");
- await click('Next: Understand Your Mission');await wait("document.querySelector('.mission-workflow')");assert.equal(await evaluate("document.querySelector('.mission-reference [data-information] p').textContent===JSON.parse(sessionStorage.getItem('lesson-test-case')).scenario.requirements"),true);
- assert.equal(await evaluate("document.querySelectorAll('.mission-workflow>li').length"),3);
+ await click('Next: Understand Your Mission');await wait("document.querySelector('.mission-workflow')");assert.equal(await evaluate("document.querySelector('.mission-requirements').textContent===JSON.parse(sessionStorage.getItem('lesson-test-case')).scenario.requirements"),true);
+ assert.equal(await evaluate("document.querySelectorAll('.mission-workflow>section').length"),3);
 
  await click("I'm Ready to Build My Agent");await wait("document.querySelector('#instruction-extract')");
  assert.equal(await evaluate("document.querySelectorAll('.combined-fields textarea').length"),3);
