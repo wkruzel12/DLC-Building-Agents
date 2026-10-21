@@ -1,0 +1,102 @@
+﻿/* Editorial composition: original Agent Lab layout, no third-party assets. */
+.agent-theme{--agent-dark:#101014;--agent-dark-surface:#19171e;background:#fff}
+.agent-theme .topbar{height:auto;display:grid;grid-template-columns:auto 1fr;gap:24px 40px;padding:26px clamp(20px,4vw,64px) 0;position:relative;align-items:center}
+.agent-theme .topbar-right{justify-self:end}
+.agent-theme .journey-progress{grid-column:1/-1;width:100%;margin:0;padding:0;background:transparent;border-radius:0}
+.agent-theme .journey-caption{display:none}
+.agent-theme .journey-progress ol{display:flex;flex-wrap:wrap;gap:0 30px;justify-content:flex-start}
+.agent-theme .journey-progress li{flex:0 1 auto;min-width:0}
+.agent-theme .journey-step{min-height:64px;padding:18px 0;border:0;border-bottom:3px solid transparent;gap:8px;border-radius:0;background:transparent}
+.agent-theme .journey-step strong{font-size:14px;line-height:1.4;font-weight:500}
+.agent-theme .journey-step small{display:none}
+.agent-theme .journey-number,.agent-theme .journey-step.is-current .journey-number,.agent-theme .journey-step.is-complete .journey-number{width:22px;height:22px;border:0;background:transparent;color:inherit}
+.agent-theme .journey-step.is-current{background:transparent;color:#fff;border-bottom-color:#c075ff}
+.agent-theme .journey-step:hover:not([aria-disabled=true]):not(.is-current){background:transparent;color:#fff;border-bottom-color:#675471}
+.agent-theme .journey-shell{max-width:1680px;padding-inline:clamp(20px,4vw,64px)}
+.agent-theme .workspace{padding-top:0}
+.agent-theme .page-heading{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:40px;align-items:end;min-height:290px;margin:0 calc(-1 * clamp(20px,4vw,64px)) 48px;padding:56px clamp(20px,4vw,64px);border:0;border-radius:0;background:#19171e;box-shadow:none}
+.agent-theme .page-heading h1{font-size:clamp(42px,5.6vw,82px);line-height:1.02;letter-spacing:-.065em;font-weight:650;margin:20px 0 0;max-width:14ch}
+.agent-theme .page-heading .eyebrow{font-size:11px;letter-spacing:.16em;color:#d6a0ff}
+.agent-theme .page-heading .hero-description p{font-size:18px;line-height:1.65;color:#e3dce8;max-width:38ch;margin:0 0 5px}
+.agent-theme .hero-description .button{margin-top:22px}
+.agent-theme :is(.card,.upload-card,.combined-workspace,.scenario-overview,.material-card,.investigation-card,.chat-card){border-radius:0;box-shadow:none}
+.agent-theme :is(.card,.combined-workspace){border:0;background:#fff}
+.agent-theme h2{font-size:clamp(25px,2.7vw,38px);line-height:1.2;font-weight:620}
+.agent-theme .button{border-radius:0;min-height:48px;padding:12px 22px;font-weight:600;transition:background-color .16s,border-color .16s}
+.agent-theme .button.primary{background:#8000ca;border-color:#8000ca;color:#fff}
+.agent-theme .button.primary:hover:not(:disabled){background:#5d0095;border-color:#5d0095;transform:none}
+.agent-theme :is(input,textarea){border-radius:0}
+.agent-theme .combined-case{border:0;border-bottom:1px solid var(--agent-line);padding:0 0 22px;margin:0 0 32px;background:transparent}
+.agent-theme .combined-workspace{padding:0}
+.agent-theme .combined-heading{margin:0 0 32px;align-items:start}
+.agent-theme .combined-field{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(0,1.15fr);column-gap:clamp(24px,5vw,80px);row-gap:10px;padding:32px 0;border:0;border-top:1px solid var(--agent-line);background:transparent}
+.agent-theme .combined-field>label{grid-column:1;font-size:24px;line-height:1.3;margin:0;color:#261632}
+.agent-theme .combined-field>label>span{color:#8000ca;font-size:12px;margin-right:12px}
+.agent-theme .combined-field>:is(.field-question,.field-explanation,.field-guidance){grid-column:1;margin:0;max-width:52ch;line-height:1.7}
+.agent-theme .combined-field>.field-question{font-size:16px;color:#33233d;font-weight:600}
+.agent-theme .combined-field>textarea{grid-column:2;grid-row:1/5;min-height:220px;margin:0;padding:20px;font-size:16px;line-height:1.7;background:#faf8fc;border:1px solid #9c8aa7;resize:vertical}
+.agent-theme .combined-field>.error-text{grid-column:2}
+.agent-theme .combined-actions{padding-top:24px;border-top:1px solid var(--agent-line)}
+.agent-theme .combined-help{background:#f7f3fb;padding:30px;margin-top:48px}
+.agent-theme .visible-choice-options>.visible-choice{display:flex;align-items:flex-start;font-size:14px;margin:0;letter-spacing:0}
+.agent-theme .upload-grid{gap:48px;align-items:stretch}
+.agent-theme .upload-card{padding:28px 0;border:0;border-top:2px solid #8000ca;background:#fff}
+.agent-theme .upload-card+.upload-card{padding-left:32px;border-left:1px solid var(--agent-line)}
+.agent-theme .dropzone{border-radius:0;background:#f7f3fb;min-height:190px}
+.agent-theme .briefing-tabs{border:0;border-bottom:1px solid var(--agent-line);background:#fff;border-radius:0;padding:0;margin-bottom:36px}
+.agent-theme .briefing-tabs button{border:0;border-radius:0;background:transparent;padding:18px 22px;border-bottom:3px solid transparent}
+.agent-theme .briefing-tabs button[aria-selected=true]{background:transparent;color:#6f00b2;border-bottom-color:#8000ca}
+.agent-theme .scenario-overview{padding:0;background:transparent;border:0}
+.agent-theme .briefing-content-section{display:grid;grid-template-columns:minmax(180px,.65fr) minmax(0,1.35fr);gap:32px;margin:0;padding:32px 0;border-top:1px solid var(--agent-line)}
+.agent-theme .briefing-content-section h4{font-size:22px;line-height:1.4;margin:0;color:#271433}
+.agent-theme .briefing-source-text,.agent-theme .briefing-criteria{font-size:17px;line-height:1.85;margin:0;max-width:80ch}
+.agent-theme .briefing-criteria{padding-left:24px}
+.agent-theme .briefing-criteria li{padding-left:8px;margin-bottom:18px}
+.agent-theme .material-card{padding:28px 0;background:#fff;border:0;border-top:1px solid var(--agent-line)}
+.agent-theme .material-card h3{font-size:23px}
+.agent-theme .material-card>.material-inline-text{border:0;font-size:16px}
+.agent-theme .combined-score{display:grid;grid-template-columns:1fr 1fr;column-gap:48px;padding:36px;background:#19171e;color:#fff;border:0;border-left:4px solid #a100ff;border-radius:0}
+.agent-theme .combined-score>.eyebrow{grid-column:1;color:#d6a0ff}
+.agent-theme .combined-score>h3{grid-column:1;grid-row:2/5;color:#fff;font-size:clamp(70px,9vw,128px);line-height:1.1;margin:8px 0}
+.agent-theme .combined-score>:is(p,small){grid-column:2;color:#e5dce9;align-self:center}
+.agent-theme .combined-feedback{gap:32px;margin:32px 0}
+.agent-theme .combined-feedback>section{border:0;border-top:2px solid #8000ca;background:transparent;padding:24px 0;border-radius:0}
+.agent-theme .combined-feedback h3{font-size:22px}
+.agent-theme .investigation-card{border:0;border-top:1px solid var(--agent-line);padding:30px 0;background:#fff}
+.agent-theme .output-section{border-radius:0;box-shadow:none}
+.agent-theme .review-context-bar{border-radius:0;background:#f5f0f9;padding:24px}
+.agent-theme .stakeholder-profiles>div>section{padding:24px 0;border-top:2px solid #8000ca;background:transparent;border-radius:0}
+.agent-theme .workspace-footer{padding:40px 0;margin-top:56px;border-top:1px solid var(--agent-line)}
+@media(min-width:1680px){.agent-theme .page-heading{margin-inline:0}}
+@media(max-width:900px){
+ .agent-theme .page-heading{grid-template-columns:1fr;gap:26px;padding-block:40px;min-height:0}
+ .agent-theme .page-heading h1{max-width:18ch}
+ .agent-theme .page-heading .hero-description p{max-width:60ch;font-size:17px}
+ .agent-theme .combined-field{grid-template-columns:1fr}
+ .agent-theme .combined-field>textarea{grid-column:1;grid-row:auto;min-height:180px;margin-top:8px}
+ .agent-theme .combined-field>.error-text{grid-column:1}
+ .agent-theme .briefing-content-section{grid-template-columns:1fr;gap:18px}
+}
+@media(max-width:600px){
+ .agent-theme .topbar{padding-top:20px;gap:18px}
+ .agent-theme .brand{font-size:25px}
+ .agent-theme .topbar-right{max-width:145px;flex-wrap:wrap;justify-content:flex-end}
+ .agent-theme .workspace-label{display:none}
+ .agent-theme .environment{font-size:10px;white-space:normal;text-align:right}
+ .agent-theme .journey-progress ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+ .agent-theme .journey-step{min-height:50px;padding:12px 0;align-items:center}
+ .agent-theme .journey-step strong{font-size:12px}
+ .agent-theme .journey-step svg{width:15px;height:15px}
+ .agent-theme .journey-number{width:18px;flex-shrink:0}
+ .agent-theme .page-heading{padding-block:32px;margin-bottom:32px}
+ .agent-theme .page-heading h1{font-size:42px}
+ .agent-theme .combined-help{padding:22px 16px}
+ .agent-theme .combined-score{display:block;padding:26px 22px}
+ .agent-theme .combined-score>h3{font-size:86px}
+ .agent-theme .upload-card+.upload-card{padding-left:0;border-left:0}
+ .agent-theme .briefing-tabs button{padding:12px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.agent-theme *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.agent-theme .journey-step{flex-direction:row;text-align:left;justify-content:flex-start}
+.agent-theme .review-attempt-choices .visible-choice-options>.visible-choice{flex-direction:row}

@@ -30,7 +30,7 @@ async function main(){
  global.__labDebug=async()=>{console.log(await evaluate('JSON.stringify({url:location.href,ready:document.readyState,title:document.title,text:document.body?.innerText.slice(0,1200)})'));await screenshot('browser-failure');};
  await send('Page.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});await send('Runtime.enable');await navigate('/');console.log('Browser connected on port',port);
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
- await wait("document.body?.textContent.includes('Start Your Challenge')");assert.equal(await evaluate("document.querySelector('nav [aria-current=step]')?.textContent.includes('Case Upload')"),true);assert.equal(await evaluate("document.querySelectorAll('.quick-steps li').length"),3);assert.equal(await evaluate("document.querySelector('.case-file-help').open"),false);await evaluate("document.querySelector('.skip-link').focus()");assert.equal(await evaluate("getComputedStyle(document.activeElement).transform"),'matrix(1, 0, 0, 1, 0, 0)');
+ await wait("document.body?.textContent.includes('Start Your Challenge')");assert.equal(await evaluate("document.querySelector('nav [aria-current=step]')?.textContent.includes('Case Upload')"),true);assert.equal(await evaluate("document.querySelectorAll('.quick-steps li').length"),3);assert.equal(await evaluate("document.querySelector('.case-file-help')"),null);await evaluate("document.querySelector('.skip-link').focus()");assert.equal(await evaluate("getComputedStyle(document.activeElement).transform"),'matrix(1, 0, 0, 1, 0, 0)');
  await navigate('/workbench');await wait("document.body?.textContent.includes('Start with a case.')");
  console.log('Direct navigation without a case is handled.');
  await click('Choose a case');await wait("document.querySelector('#case-file')");
@@ -72,7 +72,7 @@ async function main(){
  await evaluate("document.querySelector('#results-tab-results').focus()");await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight'});
  await wait("document.querySelector('#results-tab-investigate').getAttribute('aria-selected')==='true'");
  await evaluate("(()=>{const c=document.querySelector('.investigation-toolbar input');if(!c.checked)c.click();return true;})()");await wait("document.querySelectorAll('.investigation-card').length===5");
- await evaluate("document.querySelector('.investigation-card>.button').click()");await wait("!document.querySelector('.record-investigation').hidden");await click('Give Me a Hint');
+ await wait("!document.querySelector('.record-investigation').hidden");
  await evaluate("document.querySelector('.record-investigation .text-button').click()");await wait("document.querySelector('dialog')?.open");
  assert.equal(await evaluate("document.querySelectorAll('.trace-stage>.output-section').length"),3);
  assert.equal(await evaluate("document.querySelector('.original-record p').textContent.includes('Priya')"),true);
@@ -89,7 +89,7 @@ async function main(){
  await setInstruction('check',revised);await click('Next: Review My Instructions');await testAndOpenResults();assert.notEqual(await evaluate('('+progressExpression+').tests.check[0].id'),checkBefore);
  await send('Page.reload');await wait("document.querySelectorAll('.attempt-button').length===2");
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('agent-workbench.local-demo.v1')).filter(a=>a.errors===0).length"),2);
- await evaluate("document.querySelector('.learning-history').open=true;document.querySelector('#compare-attempt').value=document.querySelector('#compare-attempt option:nth-child(2)').value;document.querySelector('#compare-attempt').dispatchEvent(new Event('change',{bubbles:true}));true;");await wait("document.querySelector('.attempt-comparison')");
+ await evaluate("document.querySelectorAll('#compare-attempt input[type=radio]')[1].click();true;");await wait("document.querySelector('.attempt-comparison')");
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await delay(300);assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),true);await screenshot('results-mobile');
  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await evaluate("document.querySelector('#results-tab-improve').click()");await wait("document.querySelector('#improvement-reflection')");await reflect('I will compare each recorded output with my criteria and make uncertainty handling more explicit.');await returnBuilder();
  await click('Next: Review My Instructions');await testAndOpenResults();

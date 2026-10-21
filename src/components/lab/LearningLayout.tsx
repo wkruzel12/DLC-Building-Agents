@@ -10,7 +10,7 @@ export function LessonFrame({step,title,intro,children}:{step:string;title:strin
  return <div className="lesson-page"><PageHeading step={step} title={title} description={intro}/>{children}</div>;
 }
 export function LessonHelp({children,label='Need help?'}:{children:ReactNode;label?:string}){
- return <details className="lesson-help"><summary>{label}</summary><div>{children}</div></details>;
+ return <section data-information className="lesson-help"><h3 className="information-heading">{label}</h3><div>{children}</div></section>;
 }
 export function LessonNavigation({back,children}:{back?:ReactNode;children?:ReactNode}){
  return <footer className="lesson-navigation"><div>{back}</div><div>{children}</div></footer>;
@@ -28,6 +28,6 @@ export function AttemptSummary({attempt,history}:{attempt:Attempt;history:Attemp
  {difference&&<p>{difference.difference>0?`Accuracy rose by ${difference.difference} percentage points`:difference.difference<0?`Accuracy fell by ${Math.abs(difference.difference)} percentage points`:'Accuracy stayed the same'} compared with the earliest available previous run. {difference.changedStages.length?`You changed ${difference.changedStages.map(id=>stages.find(stage=>stage.id===id)!.title).join(', ')} instructions.`:'The three instructions were unchanged.'} These differences do not establish what caused the result.</p>}
  </OutputSection>
  {attempt.learning?.reflection&&<><h4>Your saved reflection</h4><p className="source-copy">{attempt.learning.reflection}</p></>}
- <details><summary>Review the instructions used in this run</summary>{stages.map(stage=><section key={stage.id}><h4>{stage.title}</h4><p className="source-copy">{attempt.steps[stage.id]}</p></section>)}</details>
+ <section data-information><h3 className="information-heading">Review the instructions used in this run</h3>{stages.map(stage=><section key={stage.id}><h4>{stage.title}</h4><p className="source-copy">{attempt.steps[stage.id]}</p></section>)}</section>
  <OutputSection title="Improvement guidance" kind="guidance"><p className="learning-takeaway">A successful test shows that the AI ran. A matching decision still needs sound evidence. Keep a person responsible for reviewing uncertain or consequential decisions.</p></OutputSection></section>;
 }
