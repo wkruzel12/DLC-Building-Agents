@@ -3,6 +3,7 @@ import './globals.css';
 import './agent-theme.css';
 import './performance-dashboard.css';
 import './visual-polish.css';
+import './clean-results.css';
 import type {Metadata} from 'next';
 import {FlowProvider} from '@/components/lab/FlowProvider';
 import {LabShell} from '@/components/lab/LabShell';
