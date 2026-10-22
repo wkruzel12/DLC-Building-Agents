@@ -58,7 +58,7 @@ test('free-form paragraphs, findings, and code retain meaningful punctuation and
  assert.ok(paragraphs.length>1);assert.equal(paragraphs.map(block=>block.text).join(''),long);
 });
 
-test('rendered outputs escape untrusted HTML, retain evidence, and present structured evidence without raw JSON',()=>{
+test('rendered outputs escape untrusted HTML and keep full evidence and original JSON visible',()=>{
  // React's server-component condition intentionally excludes the DOM renderer.
  // Render this client-only presentation component in an ordinary Node process.
  const {execFileSync}=require('node:child_process');
@@ -73,7 +73,13 @@ test('rendered outputs escape untrusted HTML, retain evidence, and present struc
  const evidence='"Quoted evidence (part time)"\nA-02, p. 3 [1]';
  const markup=render(AiOutput,{value:JSON.stringify({candidate_experience:'3 years',supporting_evidence:evidence,unknown:null,confirmed:false,empty:''}),showOriginal:true});
  assert.ok(markup.includes('Candidate experience'));assert.ok(markup.includes('3 years'));assert.ok(markup.includes('Not provided'));assert.ok(markup.includes('Empty text'));assert.ok(markup.includes('false'));assert.ok(markup.includes('part time'));assert.ok(markup.includes('A-02, p. 3 [1]'));
- assert.ok(!markup.includes('<details'));assert.ok(!markup.includes('output-original'));assert.ok(!markup.includes('candidate_experience'));
+ assert.ok(markup.includes('<section class="output-original">'));assert.ok(!markup.includes('<details'));assert.ok(markup.includes('<pre>'));
+ const {VisibleChoices}=require('./src/components/lab/VisibleChoices.tsx');
+ const choices=render(VisibleChoices,{value:'second',onChange:()=>{},children:[React.createElement('option',{value:'first',key:'first'},'First record'),React.createElement('option',{value:'second',key:'second'},'Second record')]});
+ assert.ok(choices.includes('First record'));assert.ok(choices.includes('Second record'));assert.ok(choices.includes('aria-pressed="true"'));assert.ok(!choices.includes('<select'));assert.ok(!choices.includes('<option'));
+ const {InstructionCards}=require('./src/components/lab/InstructionCards.tsx');
+ const cards=render(InstructionCards,{steps:{extract:'Original first line\nOriginal second line <keep>',check:'Compare the evidence.',flag:'Do not guess.'}});
+ assert.ok(cards.includes('Original first line\nOriginal second line &lt;keep&gt;'));assert.ok(cards.includes('Compare the evidence.'));assert.ok(cards.includes('Do not guess.'));assert.ok(!cards.includes('<details'));
  const attack=render(AiOutput,{value:JSON.stringify({evidence:'<img src=x onerror=alert(1)>',source:'[click](javascript:alert(1))'})});
  assert.ok(!attack.includes('<img'));assert.ok(!attack.includes('<script'));assert.ok(!attack.includes('href="javascript:'));assert.ok(attack.includes('&lt;img'));
  const decision=render(DecisionOutput,{decision:{type:'merge',target_record_id:'A-02'},reason:'Same request (source "A-02").'});
@@ -82,9 +88,6 @@ test('rendered outputs escape untrusted HTML, retain evidence, and present struc
  const plain=render(AiOutput,{value:'"A meaningful quotation (uncertain)."'});assert.ok(plain.includes('&quot;A meaningful quotation (uncertain).&quot;'));
  const formatted=render(AiOutput,{value:'**Evidence**\nA-02 (p. 3).'});assert.ok(formatted.includes('<strong>Evidence</strong>'));assert.ok(formatted.includes('A-02 (p. 3).'));
  const feedback=render(OutputSection,{title:'Evaluation feedback',kind:'evaluation',children:'This practice test was not graded.'});assert.ok(feedback.includes('output-evaluation'));assert.ok(!feedback.includes('100%'));
- const {VisibleChoices}=require('./src/components/lab/VisibleChoices.tsx');
- const choices=renderToStaticMarkup(React.createElement(VisibleChoices,{id:'records',label:'Choose a record',value:'A-02',onChange:()=>{}},React.createElement(React.Fragment,null,React.createElement('option',{value:'A-01'},'First record'),React.createElement('option',{value:'A-02'},'Second record'))));
- assert.ok(choices.includes('<fieldset'));assert.ok(choices.includes('<legend>Choose a record</legend>'));assert.equal((choices.match(/type="radio"/g)||[]).length,2);assert.ok(choices.includes('checked=""'));assert.ok(!choices.includes('<select'));assert.ok(!choices.includes('<option'));
  console.log('Renderer checks passed');
  `;
  assert.match(execFileSync(process.execPath,['-'],{input:checks,encoding:'utf8'}),/Renderer checks passed/);

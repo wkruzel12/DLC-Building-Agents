@@ -33,13 +33,17 @@ function Value({value}:{value:OutputValue}){
  }
 }
 
-export function AiOutput({value,emptyText='No output was recorded.'}:{value:string|null|undefined;showOriginal?:boolean;emptyText?:string}){
+export function OriginalResponse({text}:{text:string}){
+ return <section className="output-original"><h3 className="always-visible-heading">Original response</h3><pre>{text}</pre></section>;
+}
+
+export function AiOutput({value,showOriginal=false,emptyText='No output was recorded.'}:{value:string|null|undefined;showOriginal?:boolean;emptyText?:string}){
  const output=presentOutput(value);
- return <div className="ai-output">{output.kind==='empty'?<p className="output-not-provided">{emptyText}</p>:<>{output.kind==='structured'?<Value value={output.value}/>:<>{output.unstructured&&<p className="output-format-note">Shown as text because the response is not fully structured.</p>}<ReadableText text={output.text}/></>}</>}</div>;
+ return <div className="ai-output">{output.kind==='empty'?<p className="output-not-provided">{emptyText}</p>:<>{output.kind==='structured'?<Value value={output.value}/>:<>{output.unstructured&&<p className="output-format-note">Shown as text because the response is not fully structured.</p>}<ReadableText text={output.text}/></>}{showOriginal&&<OriginalResponse text={output.original}/>}</>}</div>;
 }
 
 // Use the already validated decision and reason instead of rendering the same
 // information again from the serialized flag response.
-export function DecisionOutput({decision,reason}:{decision:Decision;reason?:string;original?:string}){
- return <div className="decision-output"><DecisionLabel value={decision}/><AiOutput value={reason} emptyText="No explanation was recorded."/></div>;
+export function DecisionOutput({decision,reason,original}:{decision:Decision;reason?:string;original?:string}){
+ return <div className="decision-output"><DecisionLabel value={decision}/><AiOutput value={reason} emptyText="No explanation was recorded."/>{original&&<OriginalResponse text={original}/>}</div>;
 }

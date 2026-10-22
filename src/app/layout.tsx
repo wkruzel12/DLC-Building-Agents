@@ -1,8 +1,8 @@
 import {learningTarget} from '@/lib/learning-config';
 import './globals.css';
 import './agent-theme.css';
-import './expanded-content.css';
-import './editorial-layout.css';
+import './performance-dashboard.css';
+import './visual-polish.css';
 import type {Metadata} from 'next';
 import {FlowProvider} from '@/components/lab/FlowProvider';
 import {LabShell} from '@/components/lab/LabShell';

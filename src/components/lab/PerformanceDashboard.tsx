@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import {useId} from 'react';
 import type {Attempt} from '@/lib/types';
 import {performanceHistory,performanceOutcomes} from '@/lib/performance-metrics';
@@ -11,7 +11,7 @@ export function PerformanceDashboard({attempt,history,target,onSelect}:{attempt:
  const x=(index:number)=>rows.length===1?330:55+index*550/(rows.length-1),y=(score:number)=>205-score*1.7;
  return <div className="performance-dashboard">
  <section className="run-result-summary performance-summary" aria-label="Recorded run results">
- <div className="performance-score"><span className="eyebrow">DECISION ACCURACY</span><h2>{attempt.accuracy}%</h2><p>{outcomes.matched} of {outcomes.total} decisions matched.</p><span className={'performance-target '+(met?'target-met':'')}>{met?'Learning target reached':Math.max(0,target-attempt.accuracy)+' points to target'} / {target}% target</span></div>
+ <div className="performance-score combined-score"><span className="eyebrow">AI ACCURACY</span><h3>{attempt.accuracy}%</h3><p>{outcomes.matched} out of {outcomes.total} decisions correct</p><small>A correct decision matches the case rubric's action and any required target. Processing errors count in the existing score.</small><span className={'performance-target '+(met?'target-met':'')}>{met?'Learning target reached':Math.max(0,target-attempt.accuracy)+' points to target'} / {target}% target</span></div>
  <dl className="performance-kpis"><div><dt>Records evaluated</dt><dd>{outcomes.total}</dd><small>This saved run</small></div><div><dt>Need review</dt><dd>{outcomes.total-outcomes.matched}</dd><small>Includes processing errors</small></div><div><dt>Processing errors</dt><dd>{attempt.errors}</dd><small>Included in the recorded score</small></div><div><dt>Change from previous run</dt><dd className="metric-delta">{delta===null?'First run':(delta>0?'+':'')+delta+' pp'}</dd><small>{delta===null?'No earlier comparable run':previous.accuracy+'% previously / percentage points'}</small></div></dl>
  </section>
  {attempt.mode==='demo'&&<p className="performance-mode-note"><strong>Simulated results.</strong> These scores come from demonstration mode, not a live AI assessment.</p>}
