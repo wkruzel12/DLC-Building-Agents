@@ -1,0 +1,39 @@
+/* Instructor dashboard and student join-code card. Uses the existing agent theme variables. */
+/* Matches the student workspace gutter, which the full-bleed page heading offsets with negative margins. */
+.agent-theme .instructor-workspace{padding:0 clamp(20px,4vw,64px) 48px;max-width:none;width:100%}
+.instructor-page{display:flex;flex-direction:column;gap:18px}
+.instructor-grid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:20px;align-items:start}
+.instructor-cases,.instructor-main>.card,.instructor-main>section.card{padding:20px}
+.instructor-main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.instructor-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.instructor-section-head h2,.instructor-case-head h2{font-size:20px;font-weight:700;margin:2px 0 0}
+.instructor-subhead{font-size:17px;font-weight:700;margin:0 0 6px}
+.small-note{font-size:13px;color:var(--muted);margin:8px 0}
+.instructor-case-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.instructor-case{width:100%;text-align:left;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;color:var(--ink)}
+.instructor-case:hover{border-color:var(--agent-lavender)}
+.instructor-case.is-selected{border-color:var(--purple);background:#f7f0fc}
+.instructor-case small{color:var(--muted);font-size:12px}
+.join-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;font-size:13px;color:var(--purple);font-weight:700}
+.join-code.large{font-size:28px;display:block;margin:2px 0 8px}
+.instructor-case-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.instructor-code-box{text-align:right}
+.instructor-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.instructor-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:10px 0 0}
+.instructor-kpis div{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.instructor-kpis dt{font-size:12px;color:var(--muted)}
+.instructor-kpis dd{font-size:28px;font-weight:700;margin:4px 0 2px;color:var(--ink)}
+.instructor-kpis small{font-size:12px;color:var(--muted)}
+.table-scroll{overflow-x:auto;margin-top:8px}
+.instructor-table{width:100%;border-collapse:collapse;font-size:14px}
+.instructor-table th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+.instructor-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.instructor-table small{color:var(--muted)}
+.planted-badge{margin-left:8px;padding:2px 6px}
+.miss-cell{display:flex;align-items:center;gap:10px;min-width:170px}
+.miss-bar{flex:0 0 90px;height:8px;border-radius:999px;background:#efe9f4;overflow:hidden}
+.miss-bar span{display:block;height:100%;background:var(--purple);border-radius:999px}
+.join-form{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.join-input{flex:1 1 160px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase}
+@media (max-width:900px){.instructor-grid{grid-template-columns:1fr}.instructor-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.instructor-code-box{text-align:left}.instructor-actions{justify-content:flex-start}}
+@media (max-width:520px){.instructor-kpis{grid-template-columns:1fr}}

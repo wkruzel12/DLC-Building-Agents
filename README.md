@@ -10,6 +10,7 @@ Install dependencies with `npm install`, configure server credentials in `.env.l
 
 - [Application setup and PDF uploads](docs/agent-lab.md)
 - [Stakeholder conversations, limits, source, and deployment](docs/stakeholders.md)
+- [Instructor classroom mode (join codes and class dashboard)](docs/classroom.md)
 
 Apply `supabase/schema.sql`, `supabase/cases.sql`, and `supabase/stakeholders.sql` for authenticated production persistence. Stakeholder personas currently use the supplied fallback specifications because the authoritative DOCX was not available.
 
