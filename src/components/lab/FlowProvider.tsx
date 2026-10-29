@@ -8,6 +8,7 @@ import {canAccessWorkbench,isTcuEmail} from '@/lib/auth-access';
 import type {Attempt,CaseReference,Steps} from '@/lib/types';
 import {freshProgress,restoreProgress,type BuilderProgress} from '@/lib/builder-progress';
 import {inspectRunResponse,type RunOutcome} from '@/lib/combined-builder';
+import {ProofworkLogo,ProofworkMark} from '../brand/Logo';
 
 export const defaultSteps:Steps={extract:'',check:'',flag:''};
 const historyKey='agent-workbench.local-demo.v1';
@@ -15,7 +16,7 @@ const flowKey='agent-lab.flow.v1';
 type Drafts=Record<string,Steps>;
 type Flow={canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt,stayInBuilder?:boolean)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>})=>Promise<RunOutcome>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
 const Context=createContext<Flow|null>(null);
-export function useLab(){const value=useContext(Context);if(!value)throw Error('Agent Lab context is unavailable');return value;}
+export function useLab(){const value=useContext(Context);if(!value)throw Error('Proofwork context is unavailable');return value;}
 
 export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET}:{children:React.ReactNode;local:boolean;demo:boolean;target?:number}){
  const router=useRouter();
@@ -121,7 +122,7 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
  }
  async function signOut(){if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
 
- if(!authReady)return <div className="boot-screen">Opening Agent Lab…</div>;
+ if(!authReady)return <div className="boot-screen"><ProofworkMark size={32}/><span>Opening Proofwork…</span></div>;
  if(!access)return <AccessPanel demo={demo} supabase={supabase!}/>;
  return <Context.Provider value={{canReview,target,needsReflection,updateAttemptLearning,builder,editBuilder,reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
 }
@@ -130,5 +131,5 @@ function AccessPanel({demo,supabase}:{demo:boolean;supabase:ReturnType<typeof br
  const [email,setEmail]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  async function enter(event:React.FormEvent){event.preventDefault();if(busy)return;setError('');const label=email.trim().toLowerCase();if(!isTcuEmail(label)){setError('Use a valid @tcu.edu email address.');return;}setBusy(true);
   try{const {error}=demo?await supabase.auth.signInAnonymously({options:{data:{demo_email_label:label}}}):await supabase.auth.signInWithOtp({email:label,options:{emailRedirectTo:window.location.origin+'/auth/callback'}});if(error)throw error;if(!demo)setError('Check your TCU email for the verification link.');}catch(error){setError(error instanceof Error?error.message:'Could not sign in.');}finally{setBusy(false);}}
- return <main className="auth-screen"><form className="card auth-card" onSubmit={enter}><span className="eyebrow">AGENT LAB</span><h1>Your learning workspace.</h1><p>{demo?'Enter a TCU email as an unverified display label to begin.':'Verify your TCU email to access private cases and AI execution.'}</p><label htmlFor="student-email">TCU email{demo?' · unverified display label':''}</label><input id="student-email" className="input" type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="student@tcu.edu" required/><button className="button primary" disabled={busy}>{busy?'Connecting…':demo?'Enter Workbench':'Send verification link'}</button>{error&&<p role="status">{error}</p>}</form></main>;
+ return <main className="auth-screen"><form className="card auth-card" onSubmit={enter}><ProofworkLogo size={30}/><h1>Sign in to Proofwork</h1><p>{demo?'Enter a TCU email as an unverified display label to begin.':'Verify your TCU email to access private cases and AI execution.'}</p><label htmlFor="student-email">TCU email{demo?' · unverified display label':''}</label><input id="student-email" className="input" type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="student@tcu.edu" required/><button className="button primary" disabled={busy}>{busy?'Connecting…':demo?'Enter Workbench':'Send verification link'}</button>{error&&<p role="status">{error}</p>}</form></main>;
 }

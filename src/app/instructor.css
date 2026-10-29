@@ -12,7 +12,7 @@
 .instructor-case-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .instructor-case{width:100%;text-align:left;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;color:var(--ink)}
 .instructor-case:hover{border-color:var(--agent-lavender)}
-.instructor-case.is-selected{border-color:var(--purple);background:#f7f0fc}
+.instructor-case.is-selected{border-color:var(--purple);background:#f4f6f8}
 .instructor-case small{color:var(--muted);font-size:12px}
 .join-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;font-size:13px;color:var(--purple);font-weight:700}
 .join-code.large{font-size:28px;display:block;margin:2px 0 8px}
@@ -31,7 +31,7 @@
 .instructor-table small{color:var(--muted)}
 .planted-badge{margin-left:8px;padding:2px 6px}
 .miss-cell{display:flex;align-items:center;gap:10px;min-width:170px}
-.miss-bar{flex:0 0 90px;height:8px;border-radius:999px;background:#efe9f4;overflow:hidden}
+.miss-bar{flex:0 0 90px;height:8px;border-radius:999px;background:#eceef1;overflow:hidden}
 .miss-bar span{display:block;height:100%;background:var(--purple);border-radius:999px}
 .join-form{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 .join-input{flex:1 1 160px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase}
