@@ -2,6 +2,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {useLab} from '../lab/FlowProvider';
 import {useRole} from '../lab/useRole';
+import {useGuideContext} from './GuideContext';
+import Link from 'next/link';
 import {Icon,PageHeading} from '../lab/ui';
 import {formatJoinCode} from '@/lib/roles';
 import type {ClassSummary} from '@/lib/class-analytics';
@@ -13,7 +15,7 @@ async function readJson<T>(response:Response):Promise<T>{const body=await respon
 const percent=(value:number|null)=>value===null?'—':value+'%';
 
 export function InstructorDashboard(){
- const lab=useLab(),role=useRole(lab.user?.id),input=useRef<HTMLInputElement>(null);
+ const lab=useLab(),role=useRole(lab.user?.id),input=useRef<HTMLInputElement>(null),guide=useGuideContext();
  const [cases,setCases]=useState<PublishedCase[]|null>(null),[selected,setSelected]=useState<string|null>(null),[dashboard,setDashboard]=useState<Dashboard|null>(null);
  const [uploading,setUploading]=useState(false),[loadingClass,setLoadingClass]=useState(false),[message,setMessage]=useState<{kind:'error'|'success';text:string}|null>(null),[copied,setCopied]=useState('');
 
@@ -29,6 +31,8 @@ export function InstructorDashboard(){
   catch(error){if(!signal?.aborted){setDashboard(null);setMessage({kind:'error',text:error instanceof Error?error.message:'Could not load class results.'});}}
   finally{if(!signal?.aborted)setLoadingClass(false);}
  },[]);
+ // Proofwork Guide answers about the case selected here.
+ useEffect(()=>{guide.set({page:'dashboard',...(selected?{case_id:selected}:{})});},[selected,guide]);
  useEffect(()=>{if(!selected)return;const controller=new AbortController();void loadDashboard(selected,controller.signal);return()=>controller.abort();},[selected,loadDashboard]);
 
  async function upload(file:File){
@@ -67,7 +71,7 @@ export function InstructorDashboard(){
    </aside>
 
    <section className="instructor-main" aria-live="polite">
-    {!current?<div className="card empty-state"><span className="icon-block"><Icon name="chart" size={26}/></span><h2>Class results appear here.</h2><p>Upload a case and share its join code. Results show up as students run their agents.</p></div>:<>
+    {!current?<div className="card empty-state"><span className="icon-block"><Icon name="chart" size={26}/></span><h2>Class results appear here.</h2><p>Create a case with the guided builder, or upload a finished one. Share its join code, and results show up as students run their agents.</p><Link href="/instructor/new" className="button primary">Create a case</Link></div>:<>
      <div className="card instructor-case-head"><div><span className="eyebrow">SELECTED CASE</span><h2>{current.title}</h2></div><div className="instructor-code-box"><span className="eyebrow">JOIN CODE</span><strong className="join-code large">{formatJoinCode(current.join_code)}</strong><div className="instructor-actions"><button className="button secondary" onClick={()=>void copy(current.join_code)}>{copied===current.join_code?'Copied':'Copy code'}</button><button className="button secondary" onClick={()=>void loadDashboard(current.case_id)} disabled={loadingClass}>{loadingClass?'Refreshing…':'Refresh'}</button></div></div></div>
      {loadingClass&&!dashboard?<section className="empty-state" role="status"><span className="spinner"/><p>Loading class results…</p></section>:dashboard&&dashboard.case_id===current.case_id&&<ClassView summary={dashboard.summary}/>}
     </>}
