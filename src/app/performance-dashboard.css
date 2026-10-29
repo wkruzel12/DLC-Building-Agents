@@ -1,48 +1,48 @@
 .agent-theme .performance-dashboard{margin:0 0 24px}
-.agent-theme .performance-summary.run-result-summary{display:grid;grid-template-columns:minmax(230px,.75fr) minmax(0,1.6fr);gap:32px;padding:32px;border:0;border-radius:0;background:#f5effa;align-items:center}
-.agent-theme .performance-score h2{font-size:clamp(64px,7vw,100px);line-height:1.1;margin:10px 0;color:#7200b8}
+.agent-theme .performance-summary.run-result-summary{display:grid;grid-template-columns:minmax(230px,.75fr) minmax(0,1.6fr);gap:32px;padding:32px;border:0;border-radius:0;background:#f3f4f6;align-items:center}
+.agent-theme .performance-score h2{font-size:clamp(64px,7vw,100px);line-height:1.1;margin:10px 0;color:#3d5a7b}
 .agent-theme .performance-score>p{margin:8px 0;font-size:15px}
-.agent-theme .performance-target{display:inline-block;font-size:12px;line-height:1.6;color:#593869;margin-top:12px}
-.agent-theme .performance-target.target-met{color:#235c48;font-weight:650}
+.agent-theme .performance-target{display:inline-block;font-size:12px;line-height:1.6;color:#47505a;margin-top:12px}
+.agent-theme .performance-target.target-met{color:#2c5345;font-weight:650}
 .agent-theme .performance-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 32px;margin:0}
-.agent-theme .performance-kpis>div{padding:8px 0 8px 24px;border-left:1px solid #d7c6e4;min-width:0}
-.agent-theme .performance-kpis dt{font-size:13px;line-height:1.5;color:#57465f}
-.agent-theme .performance-kpis dd{font-size:36px;font-weight:650;letter-spacing:-.04em;line-height:1.3;margin:6px 0;color:#24172c}
+.agent-theme .performance-kpis>div{padding:8px 0 8px 24px;border-left:1px solid #cfd5db;min-width:0}
+.agent-theme .performance-kpis dt{font-size:13px;line-height:1.5;color:#4e5257}
+.agent-theme .performance-kpis dd{font-size:36px;font-weight:650;letter-spacing:-.04em;line-height:1.3;margin:6px 0;color:#1e2125}
 .agent-theme .performance-kpis dd.metric-delta{font-size:29px}
-.agent-theme .performance-kpis small{font-size:12px;color:#66536f;display:block;line-height:1.6}
-.agent-theme .performance-mode-note{padding:12px 16px;margin:14px 0 24px;background:#f6f3f8;color:#5a4665;font-size:13px;border-left:3px solid #8000ca}
+.agent-theme .performance-kpis small{font-size:12px;color:#5c6166;display:block;line-height:1.6}
+.agent-theme .performance-mode-note{padding:12px 16px;margin:14px 0 24px;background:#f4f5f7;color:#50555b;font-size:13px;border-left:3px solid #436387}
 .agent-theme .performance-charts{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:36px;margin-top:32px}
-.agent-theme .performance-chart{border-top:2px solid #8000ca;padding:24px 0;min-width:0}
+.agent-theme .performance-chart{border-top:2px solid #436387;padding:24px 0;min-width:0}
 .agent-theme .performance-chart h3{font-size:23px;line-height:1.3;margin:0 0 8px}
 .agent-theme .performance-chart header p{font-size:14px;margin:0;line-height:1.7}
 .agent-theme .accuracy-trend{display:block;width:100%;height:auto;min-height:160px;margin-top:18px;overflow:visible}
-.agent-theme .accuracy-trend text{font:12px system-ui,sans-serif;fill:#5c4c65}
-.agent-theme .accuracy-trend .chart-score-label{font-size:13px;font-weight:650;fill:#6500a1}
-.agent-theme .chart-grid{stroke:#e5dfea;stroke-width:1}
-.agent-theme .chart-target{stroke:#8c7a96;stroke-width:1.5;stroke-dasharray:6 5}
-.agent-theme .chart-trend-line{fill:none;stroke:#8000ca;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
-.agent-theme .chart-point{fill:#8000ca;stroke:#fff;stroke-width:2}
-.agent-theme .chart-point.selected{fill:#fff;stroke:#8000ca;stroke-width:3}
-.agent-theme .chart-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:#594964;margin:0 0 16px}
-.agent-theme .legend-actual{display:inline-block;width:18px;height:3px;background:#8000ca}
-.agent-theme .legend-target{display:inline-block;width:18px;height:0;border-top:2px dashed #8c7a96;margin-left:8px}
+.agent-theme .accuracy-trend text{font:12px system-ui,sans-serif;fill:#54585d}
+.agent-theme .accuracy-trend .chart-score-label{font-size:13px;font-weight:650;fill:#354f6c}
+.agent-theme .chart-grid{stroke:#e2e4e7;stroke-width:1}
+.agent-theme .chart-target{stroke:#83888d;stroke-width:1.5;stroke-dasharray:6 5}
+.agent-theme .chart-trend-line{fill:none;stroke:#436387;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.agent-theme .chart-point{fill:#436387;stroke:#fff;stroke-width:2}
+.agent-theme .chart-point.selected{fill:#fff;stroke:#436387;stroke-width:3}
+.agent-theme .chart-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:#51565c;margin:0 0 16px}
+.agent-theme .legend-actual{display:inline-block;width:18px;height:3px;background:#436387}
+.agent-theme .legend-target{display:inline-block;width:18px;height:0;border-top:2px dashed #83888d;margin-left:8px}
 .agent-theme .chart-empty-note{font-size:13px;margin:16px 0}
 .agent-theme .trend-attempts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
-.agent-theme .trend-attempts>button{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-height:84px;padding:12px;background:#fff;color:#5d486a;border:1px solid #d6cadf;font-size:12px;flex:1 1 100px;max-width:190px;text-align:left}
-.agent-theme .trend-attempts>button[aria-pressed=true]{border-color:#8000ca;background:#f1e6fa;color:#5d0097}
-.agent-theme .trend-attempts strong{font-size:23px;line-height:1.2;color:#37203f}
+.agent-theme .trend-attempts>button{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-height:84px;padding:12px;background:#fff;color:#53595f;border:1px solid #d1d4d8;font-size:12px;flex:1 1 100px;max-width:190px;text-align:left}
+.agent-theme .trend-attempts>button[aria-pressed=true]{border-color:#436387;background:#edf0f3;color:#324a65}
+.agent-theme .trend-attempts strong{font-size:23px;line-height:1.2;color:#2a2f35}
 .agent-theme .trend-attempts span{font-size:11px}
-.agent-theme .outcome-stacked-bar{display:flex;height:36px;overflow:hidden;background:#eee8f2;margin:36px 0 24px}
+.agent-theme .outcome-stacked-bar{display:flex;height:36px;overflow:hidden;background:#eaecf0;margin:36px 0 24px}
 .agent-theme .outcome-stacked-bar>span{display:block;min-width:0}
-.agent-theme .outcome-matched{background:#8000ca}
-.agent-theme .outcome-mismatched{background:#cb880e}
-.agent-theme .outcome-errors{background:#b63757}
+.agent-theme .outcome-matched{background:#436387}
+.agent-theme .outcome-mismatched{background:#a07c39}
+.agent-theme .outcome-errors{background:#a6475f}
 .agent-theme .outcome-legend{margin:0}
-.agent-theme .outcome-legend>div{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid #e5dfea}
-.agent-theme .outcome-legend dt{display:flex;gap:10px;align-items:center;font-size:14px;color:#48374f}
+.agent-theme .outcome-legend>div{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid #e2e4e7}
+.agent-theme .outcome-legend dt{display:flex;gap:10px;align-items:center;font-size:14px;color:#3e4348}
 .agent-theme .outcome-swatch{width:10px;height:10px;flex-shrink:0}
-.agent-theme .outcome-legend dd{display:flex;align-items:center;gap:14px;font-size:22px;font-weight:650;margin:0;color:#2e1b38}
-.agent-theme .outcome-legend dd small{font-size:12px;font-weight:400;color:#6b5976;min-width:32px;text-align:right}
+.agent-theme .outcome-legend dd{display:flex;align-items:center;gap:14px;font-size:22px;font-weight:650;margin:0;color:#24292f}
+.agent-theme .outcome-legend dd small{font-size:12px;font-weight:400;color:#62676d;min-width:32px;text-align:right}
 .agent-theme .chart-reading-note{font-size:13px;line-height:1.8;margin:20px 0 0;max-width:64ch}
 .agent-theme .performance-interpretation{margin:32px 0;padding:24px 0;border-top:1px solid var(--agent-line);max-width:90ch}
 .agent-theme .performance-interpretation h3{font-size:22px;margin:0 0 12px}
