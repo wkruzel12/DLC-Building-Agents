@@ -11,7 +11,7 @@ const actionId={type:'string',minLength:1,maxLength:64,pattern:'^[a-z][a-z0-9_]*
 // Types are case-defined, not restricted to the resume-screening sample.
 const decisions={type:'array',minItems:1,maxItems:20,items:actionId};
 const strings={type:'array',items:string};
-const pdfCaseFormat={type:'object',additionalProperties:false,properties:{
+export const pdfCaseFormat={type:'object',additionalProperties:false,properties:{
  id:string,title:string,story:string,task:string,requirements:string,decisions,
  items:{type:'array',items:{type:'object',additionalProperties:false,properties:{id:string,label:string,text:string},required:['id','label','text']}},
  answer_key:{type:'array',items:{type:'object',additionalProperties:false,properties:{item_id:string,decision:{type:'object',additionalProperties:false,properties:{type:actionId,target_record_id:{type:['string','null'],minLength:1,maxLength:100}},required:['type','target_record_id']},planted:{type:'boolean'},note:string},required:['item_id','decision','planted','note']}},

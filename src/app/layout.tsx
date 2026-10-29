@@ -6,6 +6,7 @@ import './visual-polish.css';
 import './clean-results.css';
 import './instructor.css';
 import './proofwork.css';
+import './instructor-builder.css';
 import {GeistSans} from 'geist/font/sans';
 import {GeistMono} from 'geist/font/mono';
 import type {Metadata} from 'next';
