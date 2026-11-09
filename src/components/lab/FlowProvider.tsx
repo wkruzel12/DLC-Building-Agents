@@ -15,6 +15,7 @@ import {walkthroughRequest,type WalkthroughRole} from '@/lib/walkthrough';
 export const defaultSteps:Steps={extract:'',check:'',flag:''};
 const historyKey='agent-workbench.local-demo.v1';
 const flowKey='agent-lab.flow.v1';
+const walkthroughRoleKey='proofwork.walkthrough.role';
 type Drafts=Record<string,Steps>;
 type Flow={request:typeof fetch;walkthroughRole:WalkthroughRole|null;canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt,stayInBuilder?:boolean)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>})=>Promise<RunOutcome>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
 const Context=createContext<Flow|null>(null);
@@ -26,7 +27,7 @@ export function FlowProvider({children,local:localMode,demo,walkthrough=false,ta
  const [walkthroughRole,setWalkthroughRole]=useState<WalkthroughRole|null>(null);
  const request=useMemo(()=>walkthroughRole?walkthroughRequest(walkthroughRole,target):fetch,[walkthroughRole,target]);
  const [supabase]=useState(()=>local||walkthrough?null:browserSupabase());
- const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local||walkthrough);
+ const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local);
  const [ready,setReady]=useState(false),[reference,setReference]=useState<CaseReference|null>(null);
  const [builders,setBuilders]=useState<Record<string,BuilderProgress>>({});
  const [drafts,setDrafts]=useState<Drafts>({}),[history,setHistory]=useState<Attempt[]>([]),[activeId,setActiveId]=useState<string|null>(null);
@@ -38,12 +39,16 @@ export function FlowProvider({children,local:localMode,demo,walkthrough=false,ta
  const currentIdentity=useRef(identity);currentIdentity.current=identity;
 
  useEffect(()=>{
+  if(walkthrough){
+   try{const saved=sessionStorage.getItem(walkthroughRoleKey);if(saved==='student'||saved==='professor')setWalkthroughRole(saved);}catch{}
+   setAuthReady(true);return;
+  }
   if(!supabase)return;
   let mounted=true;
   void supabase.auth.getUser().then(({data:{user}})=>{if(mounted){setUser(user);setAuthReady(true);}}).catch(()=>{if(mounted)setAuthReady(true);});
   const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{if(mounted){setUser(session?.user||null);setAuthReady(true);}});
   return()=>{mounted=false;subscription.unsubscribe();};
- },[supabase]);
+ },[supabase,walkthrough]);
 
  useEffect(()=>{
   if(!authReady||!access)return;
@@ -125,10 +130,10 @@ export function FlowProvider({children,local:localMode,demo,walkthrough=false,ta
    return {kind:'complete',attempt:next};
   }catch(error){setError(error instanceof TypeError?'Could not connect. Check your connection and retry.':error instanceof SyntaxError?'The AI response could not be read. Please retry. Your instructions are saved.':error instanceof Error?error.message:'Run failed. Please retry.');return {kind:'failed'};}finally{runLock.current=false;setRunning(false);}
  }
- async function signOut(){if(walkthrough){setWalkthroughRole(null);router.push('/');return;}if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
+ async function signOut(){if(walkthrough){try{sessionStorage.removeItem(walkthroughRoleKey);}catch{}setWalkthroughRole(null);window.location.assign('/');return;}if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
 
  if(!authReady)return <div className="boot-screen"><ProofworkMark size={32}/><span>Opening Proofwork…</span></div>;
- if(walkthrough&&!walkthroughRole)return <WalkthroughSignIn enter={role=>{setWalkthroughRole(role);router.push(role==='professor'?'/instructor':'/');}}/>;
+ if(walkthrough&&!walkthroughRole)return <WalkthroughSignIn enter={role=>{try{sessionStorage.setItem(walkthroughRoleKey,role);}catch{setWalkthroughRole(role);router.push(role==='professor'?'/instructor':'/');return;}window.location.assign(role==='professor'?'/instructor':'/');}}/>;
  if(!access)return <AccessPanel demo={demo} supabase={supabase!}/>;
  return <Context.Provider value={{request,walkthroughRole,canReview,target,needsReflection,updateAttemptLearning,builder,editBuilder,reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
 }
