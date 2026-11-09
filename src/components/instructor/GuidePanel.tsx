@@ -1,4 +1,5 @@
 'use client';
+import {useLab} from '../lab/FlowProvider';
 import {useEffect,useRef,useState} from 'react';
 import {usePathname} from 'next/navigation';
 import {useGuideContext} from './GuideContext';
@@ -21,6 +22,7 @@ function Reply({text}:{text:string}){
 }
 
 export function GuidePanel(){
+ const {request}=useLab();
  const guide=useGuideContext(),path=usePathname();
  const [open,setOpen]=useState(false),[messages,setMessages]=useState<Message[]>([]),[draft,setDraft]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const input=useRef<HTMLTextAreaElement>(null),list=useRef<HTMLDivElement>(null),toggle=useRef<HTMLButtonElement>(null);
@@ -35,7 +37,7 @@ export function GuidePanel(){
   setMessages(next);setDraft('');setError('');setBusy(true);
   try{
    const context=guide.get();
-   const response=await fetch('/api/instructor/guide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:next,page:context.page||page,...(context.case_id?{case_id:context.case_id}:{}),...(context.draft?{draft:context.draft.slice(0,24000)}:{})})});
+   const response=await request('/api/instructor/guide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:next,page:context.page||page,...(context.case_id?{case_id:context.case_id}:{}),...(context.draft?{draft:context.draft.slice(0,24000)}:{})})});
    const body=await response.json();
    if(!response.ok)throw Error(body.error||'Proofwork Guide is unavailable right now.');
    setMessages(current=>[...current,{role:'assistant' as const,content:String(body.reply)}].slice(-16));

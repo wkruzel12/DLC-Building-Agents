@@ -1,6 +1,6 @@
 'use client';
 import {DEFAULT_LEARNING_TARGET,studentAttempt,validReflection,reviewAllowed,type AttemptLearning} from '@/lib/results-learning';
-import {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react';
+import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import type {User} from '@supabase/supabase-js';
 import {browserSupabase} from '@/lib/supabase-browser';
@@ -10,25 +10,30 @@ import {freshProgress,restoreProgress,type BuilderProgress} from '@/lib/builder-
 import {inspectRunResponse,type RunOutcome} from '@/lib/combined-builder';
 import {ProofworkLogo,ProofworkMark} from '../brand/Logo';
 
+import {walkthroughRequest,type WalkthroughRole} from '@/lib/walkthrough';
+
 export const defaultSteps:Steps={extract:'',check:'',flag:''};
 const historyKey='agent-workbench.local-demo.v1';
 const flowKey='agent-lab.flow.v1';
 type Drafts=Record<string,Steps>;
-type Flow={canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt,stayInBuilder?:boolean)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>})=>Promise<RunOutcome>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
+type Flow={request:typeof fetch;walkthroughRole:WalkthroughRole|null;canReview:boolean;target:number;needsReflection:boolean;updateAttemptLearning:(id:string,value:AttemptLearning)=>void;builder:BuilderProgress;editBuilder:(value:BuilderProgress)=>void;reference:CaseReference|null;chooseCase:(value:CaseReference)=>void;steps:Steps;editSteps:(value:Steps)=>void;history:Attempt[];active:Attempt|null;selectAttempt:(attempt:Attempt,stayInBuilder?:boolean)=>void;reviewAttempt:(attempt?:Attempt)=>void;run:(options?:{stayInBuilder?:boolean;beforeRun?:()=>Promise<void>})=>Promise<RunOutcome>;running:boolean;ready:boolean;error:string;setError:(value:string)=>void;local:boolean;demo:boolean;user:User|null;signOut:()=>void};
 const Context=createContext<Flow|null>(null);
 export function useLab(){const value=useContext(Context);if(!value)throw Error('Proofwork context is unavailable');return value;}
 
-export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET}:{children:React.ReactNode;local:boolean;demo:boolean;target?:number}){
+export function FlowProvider({children,local:localMode,demo,walkthrough=false,target=DEFAULT_LEARNING_TARGET}:{children:React.ReactNode;local:boolean;demo:boolean;walkthrough?:boolean;target?:number}){
  const router=useRouter();
- const [supabase]=useState(()=>local?null:browserSupabase());
- const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local);
+ const local=localMode&&!walkthrough;
+ const [walkthroughRole,setWalkthroughRole]=useState<WalkthroughRole|null>(null);
+ const request=useMemo(()=>walkthroughRole?walkthroughRequest(walkthroughRole,target):fetch,[walkthroughRole,target]);
+ const [supabase]=useState(()=>local||walkthrough?null:browserSupabase());
+ const [user,setUser]=useState<User|null>(null),[authReady,setAuthReady]=useState(local||walkthrough);
  const [ready,setReady]=useState(false),[reference,setReference]=useState<CaseReference|null>(null);
  const [builders,setBuilders]=useState<Record<string,BuilderProgress>>({});
  const [drafts,setDrafts]=useState<Drafts>({}),[history,setHistory]=useState<Attempt[]>([]),[activeId,setActiveId]=useState<string|null>(null);
  const [error,setError]=useState(''),[running,setRunning]=useState(false);
  const runLock=useRef(false),initialized=useRef(false);
- const access=local||canAccessWorkbench(user,demo);
- const identity=local?'local':user?.id;
+ const access=Boolean(walkthroughRole)||local||canAccessWorkbench(user,demo);
+ const identity=walkthroughRole?'walkthrough-'+walkthroughRole:local?'local':user?.id;
  const storageKey=flowKey+'.'+identity;
  const currentIdentity=useRef(identity);currentIdentity.current=identity;
 
@@ -58,7 +63,7 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
    }catch{if(!controller.signal.aborted)setError('Saved browser data could not be restored. You can start a new case.');}
    if(stored.caseId){
     try{
-     const response=await fetch('/api/cases/'+encodeURIComponent(stored.caseId),{cache:'no-store',signal:controller.signal});
+     const response=await request('/api/cases/'+encodeURIComponent(stored.caseId),{cache:'no-store',signal:controller.signal});
      const value=await response.json();
      if(!response.ok)throw Error(value.error||'Could not restore this case.');
      if(!controller.signal.aborted)setReference(value);
@@ -67,7 +72,7 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
    if(!controller.signal.aborted){initialized.current=true;setReady(true);}
   }
   void restore();return()=>controller.abort();
- },[authReady,access,identity,local,storageKey]);
+ },[authReady,access,identity,local,storageKey,request]);
 
  useEffect(()=>{
   if(!ready||!initialized.current)return;
@@ -77,13 +82,13 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
  useEffect(()=>{
   if(local||!reference)return;
   const controller=new AbortController();
-  void fetch('/api/history?case_id='+encodeURIComponent(reference.case_id),{cache:'no-store',signal:controller.signal}).then(async response=>{
+  void request('/api/history?case_id='+encodeURIComponent(reference.case_id),{cache:'no-store',signal:controller.signal}).then(async response=>{
    if(!response.ok)throw Error('Could not load your saved attempts.');
    const data:Attempt[]=await response.json();
    if(!controller.signal.aborted)setHistory(data.map(item=>({...item,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items})));
   }).catch(error=>{if(!controller.signal.aborted)setError(error.message);});
   return()=>controller.abort();
- },[local,reference]);
+ },[local,reference,request]);
 
  const chooseCase=useCallback((value:CaseReference)=>{setReference(value);setActiveId(null);setError('');},[]);
  const steps=reference?drafts[reference.case_id]||defaultSteps:defaultSteps;
@@ -107,7 +112,7 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
   runLock.current=true;setRunning(true);setError('');
   try{
    await options?.beforeRun?.();
-   const response=await fetch(local?'/api/local-demo':'/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:reference.case_id,steps})});
+   const response=await request(local?'/api/local-demo':'/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:reference.case_id,steps})});
    const body=await response.json();if(!response.ok)throw Error(response.status===401||response.status===403?'Your session needs attention. Sign in again before testing.':response.status===429?'AI testing is busy or its credits are unavailable. Wait a moment and try again.':response.status>=500?'The AI could not finish this test. Try again shortly; your instructions are saved.':body.error||'The agent could not complete this run.');
    const inspected=inspectRunResponse(body,reference.scenario,steps);if(inspected.kind==='incomplete')return inspected;
    const next:Attempt={...inspected.attempt,case_id:reference.case_id,scenario_title:reference.scenario.title,records:reference.scenario.items};
@@ -120,11 +125,12 @@ export function FlowProvider({children,local,demo,target=DEFAULT_LEARNING_TARGET
    return {kind:'complete',attempt:next};
   }catch(error){setError(error instanceof TypeError?'Could not connect. Check your connection and retry.':error instanceof SyntaxError?'The AI response could not be read. Please retry. Your instructions are saved.':error instanceof Error?error.message:'Run failed. Please retry.');return {kind:'failed'};}finally{runLock.current=false;setRunning(false);}
  }
- async function signOut(){if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
+ async function signOut(){if(walkthrough){setWalkthroughRole(null);router.push('/');return;}if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)setError(error.message);else{setReference(null);setHistory([]);setActiveId(null);setUser(null);initialized.current=false;setReady(false);router.push('/');}}
 
  if(!authReady)return <div className="boot-screen"><ProofworkMark size={32}/><span>Opening Proofwork…</span></div>;
+ if(walkthrough&&!walkthroughRole)return <WalkthroughSignIn enter={role=>{setWalkthroughRole(role);router.push(role==='professor'?'/instructor':'/');}}/>;
  if(!access)return <AccessPanel demo={demo} supabase={supabase!}/>;
- return <Context.Provider value={{canReview,target,needsReflection,updateAttemptLearning,builder,editBuilder,reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
+ return <Context.Provider value={{request,walkthroughRole,canReview,target,needsReflection,updateAttemptLearning,builder,editBuilder,reference,chooseCase,steps,editSteps,history:relevant,active,selectAttempt,reviewAttempt,run,running,ready,error,setError,local,demo,user,signOut}}>{children}</Context.Provider>;
 }
 
 function AccessPanel({demo,supabase}:{demo:boolean;supabase:ReturnType<typeof browserSupabase>}){
@@ -132,4 +138,15 @@ function AccessPanel({demo,supabase}:{demo:boolean;supabase:ReturnType<typeof br
  async function enter(event:React.FormEvent){event.preventDefault();if(busy)return;setError('');const label=email.trim().toLowerCase();if(!isTcuEmail(label)){setError('Use a valid @tcu.edu email address.');return;}setBusy(true);
   try{const {error}=demo?await supabase.auth.signInAnonymously({options:{data:{demo_email_label:label}}}):await supabase.auth.signInWithOtp({email:label,options:{emailRedirectTo:window.location.origin+'/auth/callback'}});if(error)throw error;if(!demo)setError('Check your TCU email for the verification link.');}catch(error){setError(error instanceof Error?error.message:'Could not sign in.');}finally{setBusy(false);}}
  return <main className="auth-screen"><form className="card auth-card" onSubmit={enter}><ProofworkLogo size={30}/><h1>Sign in to Proofwork</h1><p>{demo?'Enter a TCU email as an unverified display label to begin.':'Verify your TCU email to access private cases and AI execution.'}</p><label htmlFor="student-email">TCU email{demo?' · unverified display label':''}</label><input id="student-email" className="input" type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="student@tcu.edu" required/><button className="button primary" disabled={busy}>{busy?'Connecting…':demo?'Enter Workbench':'Send verification link'}</button>{error&&<p role="status">{error}</p>}</form></main>;
+}
+
+function WalkthroughSignIn({enter}:{enter:(role:WalkthroughRole)=>void}){
+ const [email,setEmail]=useState(''),[error,setError]=useState('');
+ function submit(event:React.FormEvent){
+  event.preventDefault();
+  const label=email.trim().toLowerCase();
+  if(label==='professor@tcu.edu'||label==='student@tcu.edu')enter(label==='professor@tcu.edu'?'professor':'student');
+  else setError('Use student@tcu.edu or professor@tcu.edu.');
+ }
+ return <main className="auth-screen"><form className="card auth-card" onSubmit={submit}><ProofworkLogo size={30}/><h1>Proofwork walkthrough</h1><p>Fictional classroom. Cases and results stay in this browser.</p><label htmlFor="walkthrough-email">Demo email</label><input id="walkthrough-email" className="input" type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="student@tcu.edu" required/><button className="button primary">Enter demo</button><div className="pb-inline"><button type="button" className="button secondary" onClick={()=>enter('student')}>Student demo</button><button type="button" className="button secondary" onClick={()=>enter('professor')}>Professor demo</button></div>{error&&<p role="alert">{error}</p>}</form></main>;
 }

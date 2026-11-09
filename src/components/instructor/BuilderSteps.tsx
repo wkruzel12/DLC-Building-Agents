@@ -1,4 +1,5 @@
 'use client';
+import {useLab} from '../lab/FlowProvider';
 import {useRef,useState} from 'react';
 import {AI_SKILLS,DECISION_PRESETS,RUBRIC_HIGHLIGHTS,type BuilderSetup} from '@/lib/case-builder';
 import {Icon} from '../lab/ui';
@@ -18,6 +19,7 @@ export function ListEditor({id,label,items,onChange,placeholder,max,help}:{id:st
 }
 
 export function MaterialsStep({setup,update,onAnalyzed}:StepProps&{onAnalyzed:(s:Suggestions)=>void}){
+ const {request}=useLab();
  const picker=useRef<HTMLInputElement>(null);
  const [files,setFiles]=useState<File[]>([]),[pasted,setPasted]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState<{kind:'error'|'success';text:string}|null>(null);
  async function analyze(){
@@ -26,7 +28,7 @@ export function MaterialsStep({setup,update,onAnalyzed}:StepProps&{onAnalyzed:(s
   setBusy(true);setMessage(null);
   try{
    const form=new FormData();files.forEach(file=>form.append('files',file));form.append('pasted',pasted);
-   const response=await fetch('/api/instructor/builder/analyze',{method:'POST',body:form});const body=await response.json();
+   const response=await request('/api/instructor/builder/analyze',{method:'POST',body:form});const body=await response.json();
    if(!response.ok)throw Error(body.error||'Could not read the materials.');
    update(draft=>{
     draft.course.name=draft.course.name||body.course_name;draft.course.discipline=draft.course.discipline||body.discipline;draft.course.level=body.level||draft.course.level;

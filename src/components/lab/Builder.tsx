@@ -28,7 +28,7 @@ export function Builder(){
   if(lock.current||lab.running||problems.length||lab.needsReflection)return;
   lock.current=true;setIncomplete(null);let prepared=progress;
   try{
-   const outcome=await lab.run({stayInBuilder:true,beforeRun:async()=>{prepared=await prepareAgentTests({caseId:case_id,scenario,steps:{...lab.steps},progress:{...progress,record_id:record.id},onProgress:lab.editBuilder});}});
+   const outcome=await lab.run({stayInBuilder:true,beforeRun:async()=>{prepared=await prepareAgentTests({caseId:case_id,scenario,steps:{...lab.steps},progress:{...progress,record_id:record.id},request:lab.request,onProgress:lab.editBuilder});}});
    if(outcome.kind==='complete')lab.editBuilder({...prepared,view:'results'});
    if(outcome.kind==='incomplete'){setIncomplete(outcome.detail);lab.editBuilder({...prepared,view:'results'});}
    if(outcome.kind!=='failed')setTimeout(()=>heading.current?.focus(),0);

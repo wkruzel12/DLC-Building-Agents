@@ -1,4 +1,5 @@
 'use client';
+import {useLab} from '../lab/FlowProvider';
 import {useMemo,useState} from 'react';
 import Link from 'next/link';
 import {caseChecks,toScenario,slugify,aiSkillLabel,type BuilderSetup,type EditableCase,type EditableRecord} from '@/lib/case-builder';
@@ -9,6 +10,7 @@ type Props={setup:BuilderSetup;edit:EditableCase|null;setEdit:(next:EditableCase
 const label=(type:string)=>type.replaceAll('_',' ').replace(/^./,letter=>letter.toUpperCase());
 
 export function CaseReview({setup,edit,setEdit,reviewed,setReviewed,onPublished}:Props){
+ const {request}=useLab();
  const [busy,setBusy]=useState<'generate'|'publish'|null>(null),[error,setError]=useState(''),[published,setPublished]=useState<{code:string;title:string}|null>(null);
  const checks=useMemo(()=>edit?caseChecks(edit,setup):[],[edit,setup]);
  const errors=checks.filter(c=>c.level==='error'),warnings=checks.filter(c=>c.level==='warning');
@@ -19,7 +21,7 @@ export function CaseReview({setup,edit,setEdit,reviewed,setReviewed,onPublished}
   if(edit&&!window.confirm('Generate a new draft? Your current edits to this case will be replaced.'))return;
   setBusy('generate');setError('');
   try{
-   const response=await fetch('/api/instructor/builder/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({setup})});
+   const response=await request('/api/instructor/builder/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({setup})});
    const body=await response.json();if(!response.ok)throw Error(body.error||'Could not generate the case.');
    setEdit(body.case as EditableCase);setReviewed(false);
   }catch(failure){setError(failure instanceof Error?failure.message:'Could not generate the case.');}
@@ -28,7 +30,7 @@ export function CaseReview({setup,edit,setEdit,reviewed,setReviewed,onPublished}
  async function publish(){
   if(!edit)return;setBusy('publish');setError('');
   try{
-   const response=await fetch('/api/instructor/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({edit,setup,reviewed})});
+   const response=await request('/api/instructor/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({edit,setup,reviewed})});
    const body=await response.json();if(!response.ok)throw Error(body.error||'Could not publish the case.');
    setPublished({code:body.join_code,title:edit.title});onPublished();
   }catch(failure){setError(failure instanceof Error?failure.message:'Could not publish the case.');}

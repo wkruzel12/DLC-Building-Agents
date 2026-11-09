@@ -16,21 +16,22 @@ const percent=(value:number|null)=>value===null?'—':value+'%';
 
 export function InstructorDashboard(){
  const lab=useLab(),role=useRole(lab.user?.id),input=useRef<HTMLInputElement>(null),guide=useGuideContext();
+ const {request}=lab;
  const [cases,setCases]=useState<PublishedCase[]|null>(null),[selected,setSelected]=useState<string|null>(null),[dashboard,setDashboard]=useState<Dashboard|null>(null);
  const [uploading,setUploading]=useState(false),[loadingClass,setLoadingClass]=useState(false),[message,setMessage]=useState<{kind:'error'|'success';text:string}|null>(null),[copied,setCopied]=useState('');
 
  const loadCases=useCallback(async(select?:string)=>{
-  try{const list=await readJson<PublishedCase[]>(await fetch('/api/instructor/cases',{cache:'no-store'}));setCases(list);setSelected(current=>select||current||list[0]?.case_id||null);}
+  try{const list=await readJson<PublishedCase[]>(await request('/api/instructor/cases',{cache:'no-store'}));setCases(list);setSelected(current=>select||current||list[0]?.case_id||null);}
   catch(error){setCases([]);setMessage({kind:'error',text:error instanceof Error?error.message:'Could not load your cases.'});}
- },[]);
+ },[request]);
  useEffect(()=>{if(role.instructor)void loadCases();},[role.instructor,loadCases]);
 
  const loadDashboard=useCallback(async(caseId:string,signal?:AbortSignal)=>{
   setLoadingClass(true);
-  try{const value=await readJson<Dashboard>(await fetch('/api/instructor/dashboard?case_id='+encodeURIComponent(caseId),{cache:'no-store',signal}));if(!signal?.aborted)setDashboard(value);}
+  try{const value=await readJson<Dashboard>(await request('/api/instructor/dashboard?case_id='+encodeURIComponent(caseId),{cache:'no-store',signal}));if(!signal?.aborted)setDashboard(value);}
   catch(error){if(!signal?.aborted){setDashboard(null);setMessage({kind:'error',text:error instanceof Error?error.message:'Could not load class results.'});}}
   finally{if(!signal?.aborted)setLoadingClass(false);}
- },[]);
+ },[request]);
  // Proofwork Guide answers about the case selected here.
  useEffect(()=>{guide.set({page:'dashboard',...(selected?{case_id:selected}:{})});},[selected,guide]);
  useEffect(()=>{if(!selected)return;const controller=new AbortController();void loadDashboard(selected,controller.signal);return()=>controller.abort();},[selected,loadDashboard]);
@@ -41,7 +42,7 @@ export function InstructorDashboard(){
   if(file.size>1024*1024){setMessage({kind:'error',text:'Case files must be 1 MB or smaller.'});return;}
   setUploading(true);setMessage(null);
   try{
-   const body=await readJson<{case_id:string;join_code?:string;scenario:{title:string}}>(await fetch('/api/cases',{method:'POST',headers:{'Content-Type':pdf?'application/pdf':'application/json'},body:file}));
+   const body=await readJson<{case_id:string;join_code?:string;scenario:{title:string}}>(await request('/api/cases',{method:'POST',headers:{'Content-Type':pdf?'application/pdf':'application/json'},body:file}));
    if(!body.join_code)throw Error('The case uploaded, but no join code was created. Check that classroom mode is configured.');
    setMessage({kind:'success',text:`“${body.scenario.title}” is ready. Share join code ${formatJoinCode(body.join_code)} with your class.`});
    await loadCases(body.case_id);

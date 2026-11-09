@@ -1,17 +1,19 @@
 'use client';
+import {useLab} from './FlowProvider';
 import {useState} from 'react';
 import type {CaseReference} from '@/lib/types';
 import {Icon} from './ui';
 
 // Shown to students instead of the file upload when an instructor list is configured.
 export function JoinCode({onJoined,disabled,beforeJoin}:{onJoined:(value:CaseReference)=>void;disabled?:boolean;beforeJoin:()=>boolean}){
+ const {request}=useLab();
  const [code,setCode]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  async function join(event:React.FormEvent){
   event.preventDefault();
   if(busy||!beforeJoin())return;
   setBusy(true);setMessage('');
   try{
-   const response=await fetch('/api/cases/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+   const response=await request('/api/cases/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
    const body=await response.json();
    if(!response.ok)throw Error(body.error||'Could not join this case.');
    onJoined(body as CaseReference);setCode('');
