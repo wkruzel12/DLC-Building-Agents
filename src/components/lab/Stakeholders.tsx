@@ -24,12 +24,12 @@ export function Stakeholders(){
 
  useEffect(()=>{
   target.current=key;pending.current=null;lock.current=false;setBusy(null);setReview(null);setSetup(null);setConfigBusy(false);setError('');setConfirm(false);
-  if(!caseId||!attemptId||!lab.canReview)return;
+  if(!caseId||!attemptId||!lab.canReview||lab.walkthroughRole)return;
   const controller=new AbortController();setLoading(true);
   try{const saved=JSON.parse((lab.local?localStorage:sessionStorage).getItem(savedKey)||'{}');setPersona(typeof saved.persona==='string'?saved.persona:'');setDrafts(Object.fromEntries(Object.entries(saved).filter(([id,value])=>id!=='persona'&&typeof value==='string').map(([id,value])=>[id,(value as string).slice(0,2000)])));}catch{setDrafts({});}
   void fetch(`/api/stakeholders/chat?scenario_id=${encodeURIComponent(caseId)}&attempt_id=${encodeURIComponent(attemptId)}`,{cache:'no-store',signal:controller.signal}).then(async response=>{const value=await response.json();if(!response.ok)throw Error(value.error||'Could not load this stakeholder review.');if(!controller.signal.aborted)applyResponse(value);}).catch(error=>{if(!controller.signal.aborted)setError(error.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
   return()=>{controller.abort();target.current='';};
- },[key,caseId,attemptId,savedKey,lab.local,lab.canReview]);
+ },[key,caseId,attemptId,savedKey,lab.local,lab.canReview,lab.walkthroughRole]);
 
  useEffect(()=>{if(!key||loading||target.current!==key)return;try{(lab.local?localStorage:sessionStorage).setItem(savedKey,JSON.stringify({persona,...drafts}));}catch{/* The transcript itself is safely stored on the server. */}},[key,savedKey,persona,drafts,loading,lab.local]);
  useEffect(()=>{scroll.current?.scrollTo({top:scroll.current.scrollHeight,behavior:'instant'});},[thread?.messages.length,persona,busy]);
@@ -66,6 +66,7 @@ export function Stakeholders(){
  }
  const engaged=review&&Object.values(review.conversations).every(item=>item.messages.some((message,index)=>message.role==='user'&&item.messages.slice(index+1).some(reply=>reply.role==='assistant')));
 
+ if(lab.walkthroughRole)return <LessonFrame step="05 / STAKEHOLDERS" title="Stakeholders" intro="Review your simulated results before discussing them with stakeholders."><section className="card empty-state"><h2>Live stakeholder chat uses the signed-in classroom.</h2><p>This fictional walkthrough demonstrates case publishing, student runs, and class results.</p><Link href="/results" className="button primary">Open Feedback &amp; Results</Link></section></LessonFrame>;
  if(lab.reference&&lab.active&&!lab.canReview)return <LessonFrame step="05 / STAKEHOLDERS" title="Stakeholders" intro="Discuss your results with the people involved in this case."><section className="card empty-state"><h2>Review your results first.</h2><p>Reach the learning target, or complete three simulations and acknowledge your below-target score in the Improve tab.</p><Link href="/results" className="button primary">Open Feedback &amp; Results</Link></section></LessonFrame>;
  if(!lab.reference)return <LessonFrame step="05 / STAKEHOLDERS" title="Stakeholders" intro="Discuss your results with the people involved in this case."><EmptyCase/></LessonFrame>;
  if(!lab.active)return <LessonFrame step="05 / STAKEHOLDERS" title="Stakeholders" intro="Discuss your results with the people involved in this case."><section className="card empty-state"><h2>Run your agent before meeting stakeholders.</h2><p>Stakeholders need a completed attempt to discuss real results.</p><Link className="button primary" href="/workbench">Open Agent Builder <Icon name="arrow" size={16}/></Link></section></LessonFrame>;
